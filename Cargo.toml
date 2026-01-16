@@ -1,0 +1,69 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/*",
+    "."
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+tracing = "0.1"
+tracing-subscriber = { version = "0.3",features = ["env-filter"] }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rkyv = "0.8"
+zstd = "0.13"
+
+hecs = "0.11.0"
+
+tokio = { version = "1", features = ["full"] }
+
+reqwest = { version = "0.13", features = ["json", "rustls", "form"] }
+quinn = { version = "0.11", features = ["rustls-ring"] }
+rcgen = "0.14"
+rustls = { version = "0.23", features = ["ring"], default-features = false }
+ring = "0.17"
+sha2 = "0.10"
+
+anyhow = "1.0"
+thiserror = "2.0"
+
+chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22"
+
+uuid = { version = "1.19", features = ["v4"] }
+parking_lot = "0.12"
+bytes = "1.11"
+
+webbrowser = "1.0"
+
+tiny_http = "0.12"
+rand = "0.9"
+url = "2.5"
+urlencoding = "2.1"
+rustyline = "17"
+is-terminal = "0.4"
+hex = "0.4"
+
+# Internal crate references
+protocol = { path = "crates/protocol" }
+world = { path = "crates/world" }
+net = { path = "crates/net" }
+command = { path = "crates/command" }
+
+
+
+
+[package]
+name = "hightale"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+server = { path = "crates/server" }
+tokio.workspace = true
+anyhow.workspace = true

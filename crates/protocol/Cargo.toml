@@ -1,0 +1,13 @@
+[package]
+name = "protocol"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bytes.workspace = true
+uuid = { workspace = true, features = ["serde"] }
+thiserror.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+
+

@@ -1,0 +1,22 @@
+[package]
+name = "server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+
+ring.workspace = true
+rustls.workspace = true
+rustyline.workspace = true
+is-terminal.workspace = true
+parking_lot.workspace = true
+
+command.workspace = true
+net.workspace = true
+protocol.workspace = true
+world.workspace = true
+webbrowser.workspace = true

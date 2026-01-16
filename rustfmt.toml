@@ -1,0 +1,7 @@
+max_width = 200
+imports_granularity = "Crate" # Needs nightly
+imports_layout = "Vertical" # Needs nightly
+group_imports = "StdExternalCrate" # Needs nightly
+tab_spaces = 4
+hard_tabs = true
+edition = "2024"

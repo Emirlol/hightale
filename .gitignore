@@ -1,0 +1,9 @@
+/*
+
+!/src
+!/crates
+!/.gitignore
+!/Cargo.toml
+# This is a binary, so it's okay to commit the lock file
+!/Cargo.lock
+!/rustfmt.toml

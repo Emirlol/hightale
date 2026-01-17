@@ -2,12 +2,15 @@
 mod v1;
 pub use v1::{
 	auth,
+	camera,
 	connection,
 	interface,
 	is_id_compressed,
+	serveraccess,
 	setup,
 	Asset,
 	HostAddress,
 	Packet,
 	PacketInfo,
+	MAX_SIZE,
 };

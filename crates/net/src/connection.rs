@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::auth::ServerAuthManager;
 use anyhow::{
 	anyhow,
 	bail,
@@ -10,8 +11,9 @@ use bytes::{
 	BufMut,
 	BytesMut,
 };
+use protocol::codec::FixedAscii;
+use protocol::packets::connection::DisconnectType;
 use protocol::{
-	codec::VarInt,
 	packets,
 	packets::{
 		auth::{
@@ -36,9 +38,7 @@ use tracing::{
 };
 use uuid::Uuid;
 
-use crate::auth::ServerAuthManager;
-
-const EXPECTED_HASH: &str = "6708f121966c1c443f4b0eb525b2f81d0a8dc61f5003a692a8fa157e5e02cea9";
+const EXPECTED_HASH: FixedAscii<64> = FixedAscii(*b"6708f121966c1c443f4b0eb525b2f81d0a8dc61f5003a692a8fa157e5e02cea9");
 
 pub struct PlayerConnection {
 	conn: Connection,
@@ -128,6 +128,10 @@ impl PlayerConnection {
 		let server_grant = auth_response.server_grant.ok_or(anyhow!("Client missing server grant"))?;
 
 		let fingerprint = self.auth.get_cert_fingerprint();
+
+		info!("--- Auth Debug Start ---");
+		info!("Server Grant from Client: '{}'", server_grant);
+		info!("Cert Fingerprint (Debug): {:?}", fingerprint);
 		let access_token = self.auth.get_api().exchange_grant(&server_grant, fingerprint, &server_session).await?;
 
 		self.send_packet(ServerAuthToken {
@@ -167,8 +171,8 @@ impl PlayerConnection {
 	async fn kick(&mut self, reason: &str) -> Result<()> {
 		let _ = self
 			.send_packet(Disconnect {
-				reason: reason.to_string(),
-				type_id: VarInt(0),
+				reason: Some(reason.to_string()),
+				disconnect_type: DisconnectType::Disconnect,
 			})
 			.await;
 		self.conn.close(0u32.into(), b"Kicked");

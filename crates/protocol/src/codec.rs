@@ -1,5 +1,12 @@
 use std::{
+	collections::{
+		hash_map::Entry,
+		HashMap,
+	},
 	fmt,
+	fmt::Display,
+	hash::Hash,
+	ops::Deref,
 	string::FromUtf8Error,
 };
 
@@ -9,19 +16,42 @@ use bytes::{
 	Bytes,
 	BytesMut,
 };
+use fmt::Formatter;
 use thiserror::Error;
 use uuid::Uuid;
 
+use crate::packets::MAX_SIZE;
+
 #[derive(Debug, Error)]
 pub enum PacketError {
+	#[error("In field '{0}': {1}")]
+	Context(String, #[source] Box<PacketError>),
 	#[error("Incomplete packet")]
 	Incomplete,
-	#[error("String too long")]
-	StringTooLong,
+	#[error("String too long: actual: {actual} > expected max: {max_expected}")]
+	StringTooLong { actual: i32, max_expected: i32 },
+	#[error("Negative length: {0}")]
+	NegativeLength(i32),
+	#[error("Collection too large: actual: {actual} > expected max: {max_expected}")]
+	CollectionTooLarge { actual: i32, max_expected: i32 },
+	#[error("Invalid enum variant '{0}'")]
+	InvalidEnumVariant(u8),
+	#[error("Duplicate key '{0}' in map")]
+	DuplicateKey(String),
 	#[error("Invalid VarInt")]
 	InvalidVarInt,
 	#[error("UTF8 Error: {0}")]
 	Utf8(#[from] FromUtf8Error),
+}
+
+pub trait PacketContext<T> {
+	fn context(self, field: &str) -> PacketResult<T>;
+}
+
+impl<T> PacketContext<T> for PacketResult<T> {
+	fn context(self, field: &str) -> PacketResult<T> {
+		self.map_err(|e| PacketError::Context(field.to_string(), Box::new(e)))
+	}
 }
 
 pub type PacketResult<T> = Result<T, PacketError>;
@@ -43,6 +73,30 @@ impl HytaleCodec for bool {
 			return Err(PacketError::Incomplete);
 		}
 		Ok(buf.get_u8() != 0)
+	}
+}
+
+impl HytaleCodec for f64 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_f64_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		if buf.remaining() < 8 {
+			return Err(PacketError::Incomplete);
+		}
+		Ok(buf.get_f64_le())
+	}
+}
+
+impl HytaleCodec for f32 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_f32_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		if buf.remaining() < 4 {
+			return Err(PacketError::Incomplete);
+		}
+		Ok(buf.get_f32_le())
 	}
 }
 
@@ -79,6 +133,18 @@ impl HytaleCodec for u16 {
 			return Err(PacketError::Incomplete);
 		}
 		Ok(buf.get_u16_le())
+	}
+}
+
+impl HytaleCodec for i16 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_i16_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		if buf.remaining() < 2 {
+			return Err(PacketError::Incomplete);
+		}
+		Ok(buf.get_i16_le())
 	}
 }
 
@@ -142,8 +208,16 @@ impl HytaleCodec for String {
 		buf.put_slice(self.as_bytes());
 	}
 
+	// String is basically LimitedString<4096000>
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		let len = VarInt::decode(buf)?.0 as usize;
+		let len_raw = VarInt::decode(buf)?.0;
+		if len_raw < 0 {
+			return Err(PacketError::NegativeLength(len_raw));
+		}
+		if len_raw > MAX_SIZE {
+			return Err(PacketError::StringTooLong { actual: len_raw, max_expected: MAX_SIZE });
+		}
+		let len = len_raw as usize;
 		if buf.remaining() < len {
 			return Err(PacketError::Incomplete);
 		}
@@ -169,8 +243,8 @@ impl<const N: usize> From<&str> for FixedAscii<N> {
 	}
 }
 
-impl<const N: usize> fmt::Display for FixedAscii<N> {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<const N: usize> Display for FixedAscii<N> {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		// Find the first null byte to determine "real" length
 		let len = self.0.iter().position(|&b| b == 0).unwrap_or(N);
 		let s = String::from_utf8_lossy(&self.0[..len]);
@@ -184,7 +258,7 @@ impl<const N: usize> From<FixedAscii<N>> for String {
 	}
 }
 
-impl<const N: usize> std::ops::Deref for FixedAscii<N> {
+impl<const N: usize> Deref for FixedAscii<N> {
 	type Target = [u8; N];
 
 	fn deref(&self) -> &Self::Target {
@@ -274,5 +348,54 @@ impl<T: HytaleCodec> HytaleCodec for Vec<T> {
 			out.push(T::decode(buf)?);
 		}
 		Ok(out)
+	}
+}
+
+impl<K, V: HytaleCodec> HytaleCodec for HashMap<K, V>
+where
+	K: HytaleCodec + Eq + Hash + Display,
+	V: HytaleCodec,
+{
+	fn encode(&self, buf: &mut BytesMut) {
+		VarInt(self.len() as i32).encode(buf);
+		for (key, value) in self {
+			key.encode(buf);
+			value.encode(buf);
+		}
+	}
+
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let len_raw = VarInt::decode(buf)?.0;
+		if len_raw < 0 {
+			return Err(PacketError::NegativeLength(len_raw));
+		}
+		if len_raw > MAX_SIZE {
+			return Err(PacketError::CollectionTooLarge {
+				actual: len_raw,
+				max_expected: MAX_SIZE,
+			});
+		}
+		let len = len_raw as usize;
+		let mut map = HashMap::with_capacity(len);
+		for _ in 0..len {
+			let key = K::decode(buf)?;
+			let value = V::decode(buf)?;
+			match map.entry(key) {
+				Entry::Occupied(entry) => return Err(PacketError::DuplicateKey(entry.key().to_string())),
+				Entry::Vacant(entry) => {
+					entry.insert(value);
+				}
+			}
+		}
+		Ok(map)
+	}
+}
+
+impl<T: HytaleCodec> HytaleCodec for Box<T> {
+	fn encode(&self, buf: &mut BytesMut) {
+		(**self).encode(buf);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		Ok(Box::new(T::decode(buf)?))
 	}
 }

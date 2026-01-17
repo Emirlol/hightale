@@ -1,9 +1,12 @@
-use std::fmt;
-use std::io::Cursor;
+use std::{
+	fmt,
+	string::FromUtf8Error,
+};
 
 use bytes::{
 	Buf,
 	BufMut,
+	Bytes,
 	BytesMut,
 };
 use thiserror::Error;
@@ -18,13 +21,15 @@ pub enum PacketError {
 	#[error("Invalid VarInt")]
 	InvalidVarInt,
 	#[error("UTF8 Error: {0}")]
-	Utf8(#[from] std::string::FromUtf8Error),
+	Utf8(#[from] FromUtf8Error),
 }
+
+pub type PacketResult<T> = Result<T, PacketError>;
 
 /// A trait for types that can be written to the buffer
 pub trait HytaleCodec: Sized {
 	fn encode(&self, buf: &mut BytesMut);
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError>;
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self>;
 }
 
 // --- Primitives ---
@@ -33,7 +38,7 @@ impl HytaleCodec for bool {
 	fn encode(&self, buf: &mut BytesMut) {
 		buf.put_u8(if *self { 1 } else { 0 });
 	}
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		if !buf.has_remaining() {
 			return Err(PacketError::Incomplete);
 		}
@@ -45,7 +50,7 @@ impl HytaleCodec for i32 {
 	fn encode(&self, buf: &mut BytesMut) {
 		buf.put_i32_le(*self);
 	}
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		if buf.remaining() < 4 {
 			return Err(PacketError::Incomplete);
 		}
@@ -57,7 +62,7 @@ impl HytaleCodec for u16 {
 	fn encode(&self, buf: &mut BytesMut) {
 		buf.put_u16_le(*self);
 	}
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		if buf.remaining() < 2 {
 			return Err(PacketError::Incomplete);
 		}
@@ -85,7 +90,7 @@ impl HytaleCodec for VarInt {
 		}
 	}
 
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let mut num_read = 0;
 		let mut result = 0;
 		loop {
@@ -113,18 +118,16 @@ impl HytaleCodec for String {
 		buf.put_slice(self.as_bytes());
 	}
 
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let len = VarInt::decode(buf)?.0 as usize;
 		if buf.remaining() < len {
 			return Err(PacketError::Incomplete);
 		}
-		let pos = buf.position() as usize;
-		let str = String::from_utf8(buf.get_ref()[pos..pos + len].to_vec())?;
-		buf.advance(len);
+		let bytes = buf.copy_to_bytes(len);
+		let str = String::from_utf8(bytes.to_vec())?;
 		Ok(str)
 	}
 }
-
 
 /// Wrapper for fixed-length strings (char array in C-like protocols).
 /// Encodes as exactly N bytes, padding with nulls if shorter, truncating if longer.
@@ -177,7 +180,7 @@ impl<const N: usize> HytaleCodec for FixedAscii<N> {
 		}
 	}
 
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		if buf.remaining() < N {
 			return Err(PacketError::Incomplete);
 		}
@@ -189,6 +192,20 @@ impl<const N: usize> HytaleCodec for FixedAscii<N> {
 	}
 }
 
+impl HytaleCodec for Bytes {
+	fn encode(&self, buf: &mut BytesMut) {
+		VarInt(self.len() as i32).encode(buf);
+		buf.put_slice(self);
+	}
+
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let len = VarInt::decode(buf)?.0 as usize;
+		if buf.remaining() < len {
+			return Err(PacketError::Incomplete);
+		}
+		Ok(buf.copy_to_bytes(len))
+	}
+}
 
 impl HytaleCodec for Vec<u8> {
 	fn encode(&self, buf: &mut BytesMut) {
@@ -196,7 +213,7 @@ impl HytaleCodec for Vec<u8> {
 		buf.put_slice(self);
 	}
 
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let len = VarInt::decode(buf)?.0 as usize;
 		if buf.remaining() < len {
 			return Err(PacketError::Incomplete);
@@ -211,7 +228,7 @@ impl HytaleCodec for Uuid {
 	fn encode(&self, buf: &mut BytesMut) {
 		buf.put_u128(self.as_u128());
 	}
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		if buf.remaining() < 16 {
 			return Err(PacketError::Incomplete);
 		}
@@ -226,7 +243,7 @@ impl<T: HytaleCodec> HytaleCodec for Option<T> {
 		}
 	}
 
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		if !buf.has_remaining() {
 			return Err(PacketError::Incomplete);
 		}
@@ -243,7 +260,7 @@ impl<T: HytaleCodec> HytaleCodec for Vec<T> {
 		}
 	}
 
-	fn decode(buf: &mut Cursor<&[u8]>) -> Result<Self, PacketError> {
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let len = VarInt::decode(buf)?.0 as usize;
 		let mut out = Vec::with_capacity(len);
 		for _ in 0..len {
@@ -252,4 +269,3 @@ impl<T: HytaleCodec> HytaleCodec for Vec<T> {
 		Ok(out)
 	}
 }
-

@@ -16,17 +16,16 @@ use net::{
 	server::QuicServer,
 	tls,
 };
-use tokio::{
-	io::AsyncReadExt,
-	sync::mpsc,
-};
+use tokio::sync::mpsc;
 use tracing::{
 	error,
 	info,
 };
-use tracing_subscriber::EnvFilter;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{
+	layer::SubscriberExt,
+	util::SubscriberInitExt,
+	EnvFilter,
+};
 
 macro_rules! register_commands {
     ($registry_lock:expr, $( $register:path => ( $( $arg:expr ),* $(,)? ) ),+ $(,)? ) => {{
@@ -41,8 +40,11 @@ pub async fn main() -> anyhow::Result<()> {
 	let (shutdown_tx, mut shutdown_rx) = mpsc::unbounded_channel();
 	let command_registry = CommandRegistry::new();
 	let cmd_reg_wrap = Arc::new(RwLock::new(command_registry));
-	if std::env::var("RUST_LOG").is_err() { // Make sure we have the default log level
-		unsafe { std::env::set_var("RUST_LOG", "info"); }
+	if std::env::var("RUST_LOG").is_err() {
+		// Make sure we have the default log level
+		unsafe {
+			std::env::set_var("RUST_LOG", "info");
+		}
 	}
 	if std::io::stdout().is_terminal() {
 		let (writer, console_task) = console::setup_interactive(cmd_reg_wrap.clone(), shutdown_tx.clone())?;
@@ -54,12 +56,8 @@ pub async fn main() -> anyhow::Result<()> {
 		std::thread::spawn(console_task);
 	} else {
 		// Headless mode
-		tracing_subscriber::registry()
-			.with(tracing_subscriber::fmt::layer())
-			.with(EnvFilter::from_default_env())
-			.init();
+		tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(EnvFilter::from_default_env()).init();
 	};
-
 
 	rustls::crypto::ring::default_provider().install_default().unwrap();
 	let cert_data = tls::generate_self_signed_cert()?;

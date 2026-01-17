@@ -1,20 +1,27 @@
-use std::{
-	io::Cursor,
-	sync::Arc,
-};
+use std::sync::Arc;
 
 use anyhow::{
 	anyhow,
 	bail,
 	Result,
 };
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{
+	Buf,
+	BufMut,
+	BytesMut,
+};
 use protocol::{
-	codec::{
-		HytaleCodec,
-		VarInt,
+	codec::VarInt,
+	packets,
+	packets::{
+		auth::{
+			AuthGrant,
+			ConnectAccept,
+			ServerAuthToken,
+		},
+		connection::Disconnect,
+		Packet,
 	},
-	packets::*,
 };
 use quinn::{
 	Connection,
@@ -23,7 +30,6 @@ use quinn::{
 };
 use tokio::io::AsyncReadExt;
 use tracing::{
-	debug,
 	error,
 	info,
 	warn,
@@ -58,15 +64,18 @@ impl PlayerConnection {
 	pub async fn run(mut self) -> Result<()> {
 		info!("New connection from {}", self.conn.remote_address());
 
-		let (id, payload_vec) = self.read_frame().await?;
-
-		if id != 0 {
-			self.kick("Expected Connect Packet").await?;
-			bail!("Protocol Error: Expected Connect(0), got {}", id);
-		}
-
-		let mut cursor = Cursor::new(payload_vec.as_slice());
-		let connect = ConnectPacket::decode(&mut cursor)?;
+		let connect = match self.read_packet().await {
+			Ok(Packet::Connect(payload)) => payload,
+			Ok(packet) => {
+				self.kick("Expected Connect Packet").await?;
+				bail!("Protocol Error: Expected Connect(0), got {}", packet.id());
+			}
+			Err(e) => {
+				error!("Error reading Connect packet: {}", e);
+				self.kick("Internal Error").await?;
+				return Err(e);
+			}
+		};
 
 		if connect.protocol_hash != EXPECTED_HASH {
 			warn!("Protocol mismatch: {}", connect.protocol_hash);
@@ -86,12 +95,12 @@ impl PlayerConnection {
 			}
 		} else {
 			info!("Player {} connecting without token (Offline Mode)", self.username);
-			self.send_packet(14, &ConnectAcceptPacket { password_challenge: None }).await?;
+			self.send_packet(ConnectAccept { password_challenge: None }).await?;
 		}
 
 		info!("Player {} authenticated.", self.username);
 
-		while let Ok((_, _)) = self.read_frame().await {}
+		while let Ok(_) = self.read_packet().await {}
 
 		Ok(())
 	}
@@ -104,35 +113,27 @@ impl PlayerConnection {
 
 		let auth_grant_str = self.auth.get_api().request_auth_grant(player_token, &server_session, &server_id).await?;
 
-		self.send_packet(
-			11,
-			&AuthGrantPacket {
-				auth_grant: Some(auth_grant_str),
-				server_identity,
-			},
-		)
+		self.send_packet(AuthGrant {
+			auth_grant: Some(auth_grant_str),
+			server_identity,
+		})
 		.await?;
 
-		let (id, payload_vec) = self.read_frame().await?;
-		if id != 12 {
-			bail!("Expected AuthToken(12), got {}", id);
-		}
-
-		let mut cursor = Cursor::new(payload_vec.as_slice());
-		let auth_response = AuthTokenPacket::decode(&mut cursor)?;
+		let auth_response = match self.read_packet().await {
+			Ok(Packet::AuthToken(payload)) => payload,
+			Ok(packet) => bail!("Protocol Error: Expected AuthToken(10), got {}", packet.id()),
+			Err(e) => bail!("Error reading AuthToken packet: {}", e),
+		};
 
 		let server_grant = auth_response.server_grant.ok_or(anyhow!("Client missing server grant"))?;
 
 		let fingerprint = self.auth.get_cert_fingerprint();
 		let access_token = self.auth.get_api().exchange_grant(&server_grant, fingerprint, &server_session).await?;
 
-		self.send_packet(
-			13,
-			&ServerAuthTokenPacket {
-				server_access_token: Some(access_token),
-				password_challenge: None,
-			},
-		)
+		self.send_packet(ServerAuthToken {
+			server_access_token: Some(access_token),
+			password_challenge: None,
+		})
 		.await?;
 
 		Ok(())
@@ -140,13 +141,23 @@ impl PlayerConnection {
 
 	// --- I/O Helpers ---
 
-	async fn send_packet<T: HytaleCodec>(&mut self, id: i32, packet: &T) -> Result<()> {
+	async fn send_packet(&mut self, packet: impl Into<Packet>) -> Result<()> {
+		let packet: Packet = packet.into();
 		let mut payload = BytesMut::new();
 		packet.encode(&mut payload);
 
+		let payload = if packet.is_compressed() && !payload.is_empty() {
+			// Pre-allocate at least the packet's size so there are fewer allocations
+			let mut writer = BytesMut::with_capacity(payload.len()).writer();
+			zstd::stream::copy_encode(payload.reader(), &mut writer, 3)?;
+			writer.into_inner().freeze()
+		} else {
+			payload.freeze()
+		};
+
 		let mut header = BytesMut::new();
 		header.put_i32_le(payload.len() as i32);
-		header.put_i32_le(id);
+		header.put_i32_le(packet.id());
 
 		self.send.write_all(&header).await?;
 		self.send.write_all(&payload).await?;
@@ -155,21 +166,16 @@ impl PlayerConnection {
 
 	async fn kick(&mut self, reason: &str) -> Result<()> {
 		let _ = self
-			.send_packet(
-				1,
-				&DisconnectPacket {
-					reason: reason.to_string(),
-					type_id: VarInt(0),
-				},
-			)
+			.send_packet(Disconnect {
+				reason: reason.to_string(),
+				type_id: VarInt(0),
+			})
 			.await;
 		self.conn.close(0u32.into(), b"Kicked");
 		Ok(())
 	}
 
-	/// Reads length prefix, reads body, parses ID.
-	/// Returns (PacketID, BodyBytes).
-	async fn read_frame(&mut self) -> Result<(i32, Vec<u8>)> {
+	async fn read_packet(&mut self) -> Result<Packet> {
 		let len = self.recv.read_i32_le().await? as usize;
 		let id = self.recv.read_i32_le().await?;
 
@@ -179,15 +185,21 @@ impl PlayerConnection {
 			bail!("Invalid Packet Length: {}", len);
 		}
 
-		let mut buf = vec![0u8; len];
+		let mut buf = BytesMut::zeroed(len); // This can't be just `with_capacity` because its length would be 0, which is what's used in read_exact. That means 0 bytes will be read.
 		self.recv.read_exact(&mut buf).await?;
 
-		#[cfg(debug_assertions)]
-		{
-			let hex: Vec<String> = buf.iter().map(|b| format!("{:02X}", b)).collect();
-			info!("RX Frame: Len={} Bytes=[{}]", len, hex.join(" "));
-		}
+		let is_compressed = packets::is_id_compressed(id);
 
-		Ok((id, buf))
+		let mut final_data = if is_compressed && !buf.is_empty() {
+			let mut writer = BytesMut::with_capacity(buf.len() + 1024).writer();
+			zstd::stream::copy_decode(buf.reader(), &mut writer)?;
+			writer.into_inner().freeze()
+		} else {
+			buf.freeze()
+		};
+
+		let packet = Packet::decode(id, &mut final_data)?;
+
+		Ok(packet)
 	}
 }

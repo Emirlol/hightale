@@ -46,6 +46,18 @@ impl HytaleCodec for bool {
 	}
 }
 
+impl HytaleCodec for i64 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_i64_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		if buf.remaining() < 8 {
+			return Err(PacketError::Incomplete);
+		}
+		Ok(buf.get_i64_le())
+	}
+}
+
 impl HytaleCodec for i32 {
 	fn encode(&self, buf: &mut BytesMut) {
 		buf.put_i32_le(*self);
@@ -67,6 +79,18 @@ impl HytaleCodec for u16 {
 			return Err(PacketError::Incomplete);
 		}
 		Ok(buf.get_u16_le())
+	}
+}
+
+impl HytaleCodec for u8 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_u8(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		if !buf.has_remaining() {
+			return Err(PacketError::Incomplete);
+		}
+		Ok(buf.get_u8())
 	}
 }
 
@@ -204,23 +228,6 @@ impl HytaleCodec for Bytes {
 			return Err(PacketError::Incomplete);
 		}
 		Ok(buf.copy_to_bytes(len))
-	}
-}
-
-impl HytaleCodec for Vec<u8> {
-	fn encode(&self, buf: &mut BytesMut) {
-		VarInt(self.len() as i32).encode(buf);
-		buf.put_slice(self);
-	}
-
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		let len = VarInt::decode(buf)?.0 as usize;
-		if buf.remaining() < len {
-			return Err(PacketError::Incomplete);
-		}
-		let mut out = vec![0u8; len];
-		buf.copy_to_slice(&mut out);
-		Ok(out)
 	}
 }
 

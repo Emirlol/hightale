@@ -163,7 +163,7 @@ define_packet!(
 		fixed {
 			required block_id: i32,
 			required particle_type: BlockParticleEvent,
-			opt position: PositionF,
+			opt position: PositionF [pad=24],
 		}
 	}
 );
@@ -213,7 +213,7 @@ define_packet!(UpdateSunSettings {
 });
 define_packet!(UpdateTime {
 	fixed {
-		opt game_time: InstantData,
+		opt game_time: InstantData [pad=12],
 	}
 });
 define_packet!(UpdateTimeSettings {

@@ -24,6 +24,7 @@ use crate::{
 		WorldInteraction,
 	},
 };
+use crate::packets::v1::SavedMovementStates;
 
 // Empty signal packet
 define_packet!(ClearDebugShapes {});
@@ -141,7 +142,7 @@ define_packet!(SetGameMode { game_mode: GameMode });
 define_packet!(
 	SetMovementStates {
 		fixed {
-			opt movement_states: MovementStates,
+			opt movement_states: SavedMovementStates,
 		}
 	}
 );

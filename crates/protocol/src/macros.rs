@@ -1,3 +1,68 @@
+/// Macro to define an enum and automatically implement Enumeration for it.
+/// These are enums that are serialized/deserialized as their ordinals.
+/// define_enum! {
+///     pub enum MyState {
+///         Handshake = 0,
+///         Play = 1
+///     }
+/// }
+#[macro_export]
+macro_rules! define_enum {
+    (
+        $(#[$meta:meta])*
+        $vis:vis enum $name:ident {
+            $($variant:ident = $val:literal),+ $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[repr(u8)]
+        $vis enum $name {
+            $($variant = $val),+
+        }
+
+        impl $name {
+            #[allow(clippy::wrong_self_convention)]
+            pub fn from_u8(v: u8) -> Option<Self> {
+                match v {
+                    $($val => Some(Self::$variant),)*
+                    _ => None,
+                }
+            }
+            #[allow(clippy::wrong_self_convention)]
+            pub fn to_u8(&self) -> u8 {
+                *self as u8
+            }
+        }
+
+        impl $crate::codec::HytaleCodec for $name {
+            fn encode(&self, buf: &mut bytes::BytesMut) {
+                #[allow(unused_imports)]
+                use bytes::BufMut;
+
+                buf.put_u8(self.to_u8());
+            }
+
+            fn decode(buf: &mut impl bytes::Buf) -> $crate::codec::PacketResult<Self> {
+                #[allow(unused_imports)]
+                use $crate::codec::PacketError;
+
+                if !buf.has_remaining() {
+                    return Err(PacketError::Incomplete);
+                }
+                let val = buf.get_u8();
+                Self::from_u8(val).ok_or_else(|| PacketError::InvalidEnumVariant(val))
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{:?}", self)
+            }
+        }
+    };
+}
+
 #[macro_export]
 macro_rules! define_packet {
     // Simple sequential packet layout that does not use bitmasks or offsets. All fields are required to exist.
@@ -136,12 +201,7 @@ macro_rules! define_packet {
                 #[allow(unused_imports)]
                 use bytes::Buf;
                 #[allow(unused_imports)]
-                use std::io::Cursor;
-                #[allow(unused_imports)]
                 use $crate::codec::PacketContext;
-
-                let mut buf = Cursor::new(buf.copy_to_bytes(buf.remaining()));
-                let start_pos = buf.position() as usize;
 
                 if !buf.has_remaining() { return Err($crate::codec::PacketError::Incomplete); }
 
@@ -165,12 +225,10 @@ macro_rules! define_packet {
                     let _ = stringify!($var_field);
                 )*
 
-                let var_block_start = buf.position();
+                let mut _var_read_bytes = 0i32;
                 let mut _var_offset_idx = 0;
-
-                // Decode variable fields
                 $(
-                    let $var_field = $crate::define_packet!(@offset_decode_body_multi buf null_bits _shift _offsets _var_offset_idx var_block_start $var_mode $var_type, $var_field $( ( $var_bit ) )? );
+                    let $var_field = $crate::define_packet!(@stream_decode_body buf null_bits _shift _offsets _var_offset_idx _var_read_bytes $var_mode $var_type, $var_field $( ( $var_bit ) )? );
                     $crate::define_packet!(@inc_bit_idx $var_mode _shift $( $var_bit )?);
                     _var_offset_idx += 1;
                 )*
@@ -209,38 +267,36 @@ macro_rules! define_packet {
 
     // Decode Field Multi
     (@decode_field_multi $buf:ident $bits:ident $shift:ident $field:ident required $t:ty, $( ( $b:literal ) )? $( [ $p:literal ] )?) => {
-        <$t as $crate::codec::HytaleCodec>::decode(&mut $buf).context(stringify!($field))?
+        <$t as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?
     };
 
     (@decode_field_multi $buf:ident $bits:ident $shift:ident $field:ident opt $t:ty, [ $pad:literal ]) => {
-        {
-            let is_set = ($bits[$shift / 8] & (1 << ($shift % 8))) != 0;
-            let start_pos = $buf.position();
-            let val = if is_set {
-                Some(<$t as $crate::codec::HytaleCodec>::decode(&mut $buf).context(stringify!($field))?)
-            } else {
-                None
-            };
+    {
+        let is_set = ($bits[$shift / 8] & (1 << ($shift % 8))) != 0;
+        let start = $buf.remaining();
+        let val = if is_set {
+            Some(<$t as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?)
+        } else {
+            None
+        };
 
-            let consumed = $buf.position() - start_pos;
-            if consumed > $pad {
-                 return Err($crate::codec::PacketError::CollectionTooLarge { actual: consumed as i32, max_expected: $pad as i32 }).context(stringify!($field));
-            }
-            if $buf.remaining() < ($pad - consumed) as usize {
-                 return Err($crate::codec::PacketError::Incomplete).context(stringify!($field));
-            }
-            $buf.set_position(start_pos + $pad);
+        let consumed = start - $buf.remaining();
 
-            $shift += 1;
-            val
-        }
-    };
+        if consumed > $pad { return Err($crate::codec::PacketError::Incomplete); }
+        let padding = $pad - consumed;
+        if $buf.remaining() < padding { return Err($crate::codec::PacketError::Incomplete); }
+        $buf.advance(padding);
+
+        $shift += 1;
+        val
+    }
+};
 
     (@decode_field_multi $buf:ident $bits:ident $shift:ident $field:ident opt $t:ty,) => {
         {
             let is_set = ($bits[$shift / 8] & (1 << ($shift % 8))) != 0;
             let val = if is_set {
-                Some(<$t as $crate::codec::HytaleCodec>::decode(&mut $buf).context(stringify!($field))?)
+                Some(<$t as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?)
             } else {
                 None
             };
@@ -253,7 +309,7 @@ macro_rules! define_packet {
         {
             let is_set = ($bits[$expl / 8] & (1 << ($expl % 8))) != 0;
             if is_set {
-                Some(<$t as $crate::codec::HytaleCodec>::decode(&mut $buf).context(stringify!($field))?)
+                Some(<$t as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?)
             } else {
                 if $buf.remaining() < $pad { return Err($crate::codec::PacketError::Incomplete); }
                 $buf.advance($pad);
@@ -266,41 +322,82 @@ macro_rules! define_packet {
         {
             let is_set = ($bits[$expl / 8] & (1 << ($expl % 8))) != 0;
             if is_set {
-                Some(<$t as $crate::codec::HytaleCodec>::decode(&mut $buf)?)
+                Some(<$t as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?)
             } else {
                 None
             }
         }
     };
 
-    (@offset_decode_body_multi $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $start:ident required $type:ty, $field:ident $( ( $ign:literal ) )?) => {
-         {
-             let rel_offset = $offsets[$off_idx];
-             if rel_offset < 0 { return Err($crate::codec::PacketError::Incomplete); }
-             $buf.set_position($start + rel_offset as u64);
-             <$type as $crate::codec::HytaleCodec>::decode(&mut $buf).context(stringify!($field))?
-        }
-    };
-
-    (@offset_decode_body_multi $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $start:ident opt $type:ty, $field:ident) => {
-        if ($bits[$bit_idx / 8] & (1 << ($bit_idx % 8))) != 0 {
-             let rel_offset = $offsets[$off_idx];
-             if rel_offset < 0 { return Err($crate::codec::PacketError::Incomplete); }
-             $buf.set_position($start + rel_offset as u64);
-             Some(<$type as $crate::codec::HytaleCodec>::decode(&mut $buf).context(stringify!($field))?)
-        } else {
-             None
-        }
-    };
-
-    (@offset_decode_body_multi $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $start:ident opt $type:ty, $field:ident ( $expl:literal )) => {
+    (@stream_decode_body $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $read_bytes:ident opt $type:ty, $field:ident ( $expl:literal )) => {
         if ($bits[$expl / 8] & (1 << ($expl % 8))) != 0 {
-             let rel_offset = $offsets[$off_idx];
-             if rel_offset < 0 { return Err($crate::codec::PacketError::Incomplete); }
-             $buf.set_position($start + rel_offset as u64);
-             Some(<$type as $crate::codec::HytaleCodec>::decode(&mut $buf).context(stringify!($field))?)
+             let target_offset = $offsets[$off_idx];
+             if target_offset < $read_bytes { return Err($crate::codec::PacketError::Incomplete); }
+
+             let skip = (target_offset - $read_bytes) as usize;
+             if $buf.remaining() < skip { return Err($crate::codec::PacketError::Incomplete); }
+             $buf.advance(skip);
+             $read_bytes += skip as i32;
+
+             let start = $buf.remaining();
+             let val = Some(<$type as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?);
+             $read_bytes += (start - $buf.remaining()) as i32;
+             val
         } else {
              None
+        }
+    };
+
+    (@stream_decode_body $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $read_bytes:ident opt $type:ty, $field:ident) => {
+        if ($bits[$bit_idx / 8] & (1 << ($bit_idx % 8))) != 0 {
+             let target_offset = $offsets[$off_idx];
+             if target_offset < $read_bytes { return Err($crate::codec::PacketError::Incomplete); }
+
+             let skip = (target_offset - $read_bytes) as usize;
+             if $buf.remaining() < skip { return Err($crate::codec::PacketError::Incomplete); }
+             $buf.advance(skip);
+             $read_bytes += skip as i32;
+
+             let start = $buf.remaining();
+             let val = Some(<$type as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?);
+             $read_bytes += (start - $buf.remaining()) as i32;
+             val
+        } else {
+             None
+        }
+    };
+
+    (@stream_decode_body $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $read_bytes:ident required $type:ty, $field:ident ( $ign:literal )) => {
+         {
+             let target_offset = $offsets[$off_idx];
+             if target_offset < $read_bytes { return Err($crate::codec::PacketError::Incomplete); }
+
+             let skip = (target_offset - $read_bytes) as usize;
+             if $buf.remaining() < skip { return Err($crate::codec::PacketError::Incomplete); }
+             $buf.advance(skip);
+             $read_bytes += skip as i32;
+
+             let start = $buf.remaining();
+             let val = <$type as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?;
+             $read_bytes += (start - $buf.remaining()) as i32;
+             val
+        }
+    };
+
+    (@stream_decode_body $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $read_bytes:ident required $type:ty, $field:ident) => {
+         {
+             let target_offset = $offsets[$off_idx];
+             if target_offset < $read_bytes { return Err($crate::codec::PacketError::Incomplete); }
+
+             let skip = (target_offset - $read_bytes) as usize;
+             if $buf.remaining() < skip { return Err($crate::codec::PacketError::Incomplete); }
+             $buf.advance(skip);
+             $read_bytes += skip as i32;
+
+             let start = $buf.remaining();
+             let val = <$type as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?;
+             $read_bytes += (start - $buf.remaining()) as i32;
+             val
         }
     };
 
@@ -349,71 +446,6 @@ macro_rules! define_packet {
 
             if let Some(v) = &$self.$field {
                 $crate::codec::HytaleCodec::encode(v, $buf);
-            }
-        }
-    };
-}
-
-/// Macro to define an enum and automatically implement Enumeration for it.
-/// These are enums that are serialized/deserialized as their ordinals.
-/// define_enum! {
-///     pub enum MyState {
-///         Handshake = 0,
-///         Play = 1
-///     }
-/// }
-#[macro_export]
-macro_rules! define_enum {
-    (
-        $(#[$meta:meta])*
-        $vis:vis enum $name:ident {
-            $($variant:ident = $val:literal),+ $(,)?
-        }
-    ) => {
-        $(#[$meta])*
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-        #[repr(u8)]
-        $vis enum $name {
-            $($variant = $val),+
-        }
-
-        impl $name {
-            #[allow(clippy::wrong_self_convention)]
-            pub fn from_u8(v: u8) -> Option<Self> {
-                match v {
-                    $($val => Some(Self::$variant),)*
-                    _ => None,
-                }
-            }
-            #[allow(clippy::wrong_self_convention)]
-            pub fn to_u8(&self) -> u8 {
-                *self as u8
-            }
-        }
-
-        impl $crate::codec::HytaleCodec for $name {
-            fn encode(&self, buf: &mut bytes::BytesMut) {
-                #[allow(unused_imports)]
-                use bytes::BufMut;
-
-                buf.put_u8(self.to_u8());
-            }
-
-            fn decode(buf: &mut impl bytes::Buf) -> $crate::codec::PacketResult<Self> {
-                #[allow(unused_imports)]
-                use $crate::codec::PacketError;
-
-                if !buf.has_remaining() {
-                    return Err(PacketError::Incomplete);
-                }
-                let val = buf.get_u8();
-                Self::from_u8(val).ok_or_else(|| PacketError::InvalidEnumVariant(val))
-            }
-        }
-
-        impl std::fmt::Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{:?}", self)
             }
         }
     };

@@ -1,7 +1,6 @@
 #![allow(unused_variables, unused_imports)]
 
 use std::collections::HashMap;
-use std::io::Cursor;
 use crate::{define_enum, define_packet, packets::Asset};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crate::codec::{HytaleCodec, PacketContext, PacketError, PacketResult};

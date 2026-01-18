@@ -1,19 +1,16 @@
 #![allow(unused_variables, clippy::enum_variant_names)]
 
-use std::{
-	collections::HashMap,
-	io::Cursor,
-};
+use std::collections::HashMap;
 
 use bytes::{
 	Buf,
-	BufMut,
 	Bytes,
 	BytesMut,
 };
 
 use crate::{
 	codec::{
+		BitOptionVec,
 		FixedAscii,
 		HytaleCodec,
 		PacketError,
@@ -23,7 +20,6 @@ use crate::{
 	define_enum,
 	define_packet,
 };
-use crate::codec::BitOptionVec;
 
 pub mod auth;
 pub mod camera;
@@ -31,6 +27,8 @@ pub mod connection;
 pub mod entities;
 pub mod interaction;
 pub mod interface;
+pub mod inventory;
+pub mod player;
 pub mod serveraccess;
 pub mod setup;
 
@@ -726,36 +724,36 @@ define_packet!(
 );
 
 define_packet!(
-    ComponentUpdate {
-        mask_size: 3,
-        fixed {
-            required update_type: ComponentUpdateType,
-            required block_id: i32,
-            required entity_scale: f32,
-            opt(8) transform: ModelTransform [pad=49],
-            opt(9) movement_states: MovementStates [pad=22],
-            opt(12) dynamic_light: ColorLight [pad=4],
-            required hitbox_collision_config_index: i32,
-            required repulsion_config_index: i32,
-            required prediction_id: uuid::Uuid,
-            opt(15) mounted: MountedUpdate [pad=48],
-        }
-        variable {
-            opt(0) nameplate: Nameplate,
-            opt(1) entity_ui_components: Vec<i32>,
-            opt(2) combat_text_update: CombatTextUpdate,
-            opt(3) model: Model,
-            opt(4) skin: setup::PlayerSkin,
-            opt(5) item: ItemWithAllMetadata,
-            opt(6) equipment: Equipment,
-            opt(7) entity_stat_updates: HashMap<i32, Vec<EntityStatUpdate>>,
-            opt(10) entity_effect_updates: Vec<EntityEffectUpdate>,
-            opt(11) interactions: HashMap<interaction::InteractionType, i32>,
-            opt(13) sound_event_ids: Vec<i32>,
-            opt(14) interaction_hint: String,
-            opt(16) active_animations: BitOptionVec<String>,
-        }
-    }
+	ComponentUpdate {
+		mask_size: 3,
+		fixed {
+			required update_type: ComponentUpdateType,
+			required block_id: i32,
+			required entity_scale: f32,
+			opt(8) transform: ModelTransform [pad=49],
+			opt(9) movement_states: MovementStates [pad=22],
+			opt(12) dynamic_light: ColorLight [pad=4],
+			required hitbox_collision_config_index: i32,
+			required repulsion_config_index: i32,
+			required prediction_id: uuid::Uuid,
+			opt(15) mounted: MountedUpdate [pad=48],
+		}
+		variable {
+			opt(0) nameplate: Nameplate,
+			opt(1) entity_ui_components: Vec<i32>,
+			opt(2) combat_text_update: CombatTextUpdate,
+			opt(3) model: Model,
+			opt(4) skin: setup::PlayerSkin,
+			opt(5) item: ItemWithAllMetadata,
+			opt(6) equipment: Equipment,
+			opt(7) entity_stat_updates: HashMap<i32, Vec<EntityStatUpdate>>,
+			opt(10) entity_effect_updates: Vec<EntityEffectUpdate>,
+			opt(11) interactions: HashMap<interaction::InteractionType, i32>,
+			opt(13) sound_event_ids: Vec<i32>,
+			opt(14) interaction_hint: String,
+			opt(16) active_animations: BitOptionVec<String>,
+		}
+	}
 );
 
 define_packet!(
@@ -769,6 +767,172 @@ define_packet!(
 		}
 	}
 );
+
+define_packet!(
+	ItemQuantity {
+		fixed {
+			required quantity: i32
+		}
+		variable {
+			opt item_id: String,
+		}
+	}
+);
+
+define_packet!(HalfFloatPosition { x: i16, y: i16, z: i16 });
+
+define_packet!(TeleportAck { teleport_id: u8 });
+
+define_packet!(Vector3d { x: f64, y: f64, z: f64 });
+
+define_packet!(
+	DamageCause {
+		variable {
+			opt id: String,
+			opt damage_text_color: String
+		}
+	}
+);
+
+define_enum! {
+	pub enum DebugShape {
+		Sphere = 0,
+		Cylinder = 1,
+		Cone = 2,
+		Cube = 3,
+		Frustum = 4,
+	}
+}
+
+define_enum! {
+	pub enum MouseButtonType {
+		Left = 0,
+		Middle = 1,
+		Right = 2,
+		X1 = 3,
+		X2 = 4,
+	}
+}
+
+define_enum! {
+	pub enum MouseButtonState {
+		Pressed = 0,
+		Released = 1,
+	}
+}
+
+define_packet!(MouseButtonEvent {
+	mouse_button_type: MouseButtonType,
+	state: MouseButtonState,
+	clicks: u8
+});
+
+define_packet!(Vector2i { x: i32, y: i32 });
+
+define_packet!(
+	MouseMotionEvent {
+		fixed {
+			opt relative_motion: Vector2i [pad=8],
+		}
+		variable {
+			opt mouse_button_type: Vec<MouseButtonType>,
+		}
+	}
+);
+
+define_packet!(
+	WorldInteraction {
+		fixed {
+			required entity_id: i32,
+			opt block_position: BlockPosition [pad=12],
+			opt block_rotation: BlockRotation [pad=3],
+		}
+	}
+);
+
+define_enum! {
+	pub enum GameMode {
+		Adventure = 0,
+		Creative = 1
+	}
+}
+
+define_packet!(SavedMovementStates { flying: bool });
+
+define_enum! {
+	pub enum PickupLocation {
+		Hotbar = 0,
+		Storage = 1
+	}
+}
+
+define_packet!(MovementSettings {
+	mass: f32,
+	drag_coefficient: f32,
+	inverted_gravity: bool,
+	velocity_resistance: f32,
+	jump_force: f32,
+	swim_jump_force: f32,
+	jump_buffer_duration: f32,
+	jump_buffer_max_y_velocity: f32,
+	acceleration: f32,
+	air_drag_min: f32,
+	air_drag_max: f32,
+	air_drag_min_speed: f32,
+	air_drag_max_speed: f32,
+	air_friction_min: f32,
+	air_friction_max: f32,
+	air_friction_min_speed: f32,
+	air_friction_max_speed: f32,
+	air_speed_multiplier: f32,
+	air_control_min_speed: f32,
+	air_control_max_speed: f32,
+	air_control_min_multiplier: f32,
+	air_control_max_multiplier: f32,
+	combo_air_speed_multiplier: f32,
+	base_speed: f32,
+	climb_speed: f32,
+	climb_speed_lateral: f32,
+	climb_up_sprint_speed: f32,
+	climb_down_sprint_speed: f32,
+	horizontal_fly_speed: f32,
+	vertical_fly_speed: f32,
+	max_speed_multiplier: f32,
+	min_speed_multiplier: f32,
+	wish_direction_gravity_x: f32,
+	wish_direction_gravity_y: f32,
+	wish_direction_weight_x: f32,
+	wish_direction_weight_y: f32,
+	can_fly: bool,
+	collision_expulsion_force: f32,
+	forward_walk_speed_multiplier: f32,
+	backward_walk_speed_multiplier: f32,
+	strafe_walk_speed_multiplier: f32,
+	forward_run_speed_multiplier: f32,
+	backward_run_speed_multiplier: f32,
+	strafe_run_speed_multiplier: f32,
+	forward_crouch_speed_multiplier: f32,
+	backward_crouch_speed_multiplier: f32,
+	strafe_crouch_speed_multiplier: f32,
+	forward_sprint_speed_multiplier: f32,
+	variable_jump_fall_force: f32,
+	fall_effect_duration: f32,
+	fall_jump_force: f32,
+	fall_momentum_loss: f32,
+	auto_jump_obstacle_speed_loss: f32,
+	auto_jump_obstacle_sprint_speed_loss: f32,
+	auto_jump_obstacle_effect_duration: f32,
+	auto_jump_obstacle_sprint_effect_duration: f32,
+	auto_jump_obstacle_max_angle: f32,
+	auto_jump_disable_jumping: bool,
+	min_slide_entry_speed: f32,
+	slide_exit_speed: f32,
+	min_fall_speed_to_engage_roll: f32,
+	max_fall_speed_to_engage_roll: f32,
+	roll_start_speed_modifier: f32,
+	roll_exit_speed_modifier: f32,
+	roll_time_to_complete: f32,
+});
 
 // Helper struct so we can check compression before decoding
 pub struct PacketInfo {
@@ -880,7 +1044,7 @@ packet_enum! {
 	22 => WorldLoadFinished(setup::WorldLoadFinished),
 	23 => RequestAssets(setup::RequestAssets) [compressed],
 	24 => AssetInitialize(setup::AssetInitialize),
-	25 => AssetPart(setup::AssetPart),
+	25 => AssetPart(setup::AssetPart) [compressed],
 	26 => AssetFinalize(setup::AssetFinalize),
 	27 => RemoveAssets(setup::RemoveAssets),
 	28 => RequestCommonAssetsRebuild(setup::RequestCommonAssetsRebuild),
@@ -891,14 +1055,48 @@ packet_enum! {
 	33 => PlayerOptions(setup::PlayerOptions),
 	34 => ServerTags(setup::ServerTags),
 
+	// Player
+	100 => SetClientId(player::SetClientId),
+	101 => SetGameMode(player::SetGameMode),
+	102 => SetMovementStates(player::SetMovementStates),
+	103 => SetBlockPlacementOverride(player::SetBlockPlacementOverride),
+	104 => JoinWorld(player::JoinWorld),
+	105 => ClientReady(player::ClientReady),
+	106 => LoadHotbar(player::LoadHotbar),
+	107 => SaveHotbar(player::SaveHotbar),
+	108 => ClientMovement(player::ClientMovement),
+	109 => ClientTeleport(player::ClientTeleport),
+	110 => UpdateMovementSettings(player::UpdateMovementSettings),
+	111 => MouseInteraction(player::MouseInteraction),
+	112 => DamageInfo(player::DamageInfo),
+	113 => ReticleEvent(player::ReticleEvent),
+	114 => DisplayDebug(player::DisplayDebug),
+	115 => ClearDebugShapes(player::ClearDebugShapes),
+	116 => SyncPlayerPreferences(player::SyncPlayerPreferences),
+	117 => ClientPlaceBlock(player::ClientPlaceBlock),
+	118 => UpdateMemoriesFeatureStatus(player::UpdateMemoriesFeatureStatus),
+	119 => RemoveMapMarker(player::RemoveMapMarker),
+
 	// Entities
 	160 => SetEntitySeed(entities::SetEntitySeed),
-	161 => EntityUpdates(entities::EntityUpdates),
+	161 => EntityUpdates(entities::EntityUpdates) [compressed],
 	162 => PlayAnimation(entities::PlayAnimation),
 	163 => ChangeVelocity(entities::ChangeVelocity),
 	164 => ApplyKnockback(entities::ApplyKnockback),
 	165 => SpawnModelParticles(entities::SpawnModelParticles),
 	166 => MountMovement(entities::MountMovement),
+
+	// Inventory
+	170 => UpdatePlayerInventory(inventory::UpdatePlayerInventory) [compressed],
+	171 => SetCreativeItem(inventory::SetCreativeItem),
+	172 => DropCreativeItem(inventory::DropCreativeItem),
+	173 => SmartGiveCreativeItem(inventory::SmartGiveCreativeItem),
+	174 => DropItemStack(inventory::DropItemStack),
+	175 => MoveItemStack(inventory::MoveItemStack),
+	176 => SmartMoveItemStack(inventory::SmartMoveItemStack),
+	177 => SetActiveSlot(inventory::SetActiveSlot),
+	178 => SwitchHotbarBlockSet(inventory::SwitchHotbarBlockSet),
+	179 => InventoryAction(inventory::InventoryAction),
 
 	// Interface
 	210 => ServerMessage(interface::ServerMessage),

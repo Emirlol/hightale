@@ -2,8 +2,8 @@ use crate::{
 	define_enum,
 	define_packet,
 	packets::v1::{
-		Direction,
-		Position,
+		DirectionF,
+		PositionF,
 		Vector2f,
 		Vector3f,
 	},
@@ -51,17 +51,17 @@ define_packet!(
 			required skip_character_physics: bool,
 			required is_first_person: bool,
 			required movement_force_rotation_type: MovementForceRotationType,
-			opt movement_force_rotation: Direction [pad=12], // Bit 1
+			opt movement_force_rotation: DirectionF [pad=12], // Bit 1
 			required attached_to_type: AttachedToType,
 			required attached_to_entity_id: i32,
 			required eye_offset: bool,
 			required position_distance_offset_type: PositionDistanceOffsetType,
-			opt position_offset: Position [pad=24], // Bit 2
-			opt rotation_offset: Direction [pad=12], // Bit 4
+			opt position_offset: PositionF [pad=24], // Bit 2
+			opt rotation_offset: DirectionF [pad=12], // Bit 4
 			required position_type: PositionType,
-			opt position: Position [pad=24], // Bit 8
+			opt position: PositionF [pad=24], // Bit 8
 			required rotation_type: RotationType,
-			opt rotation: Direction [pad=12], // Bit 16
+			opt rotation: DirectionF [pad=12], // Bit 16
 			required can_move_type: CanMoveType,
 			required apply_movement_type: ApplyMovementType,
 			opt movement_multiplier: Vector3f [pad=12], // Bit 32
@@ -78,7 +78,7 @@ define_packet!(
 		bitmask {
 			required client_camera_view: ClientCameraView,
 			required is_locked: bool,
-			opt camera_settings: Box<ServerCameraSettings>, // Boxed to avoid large packet size
+			opt camera_settings: Box<ServerCameraSettings>, // Boxed to avoid large packet enum size
 		}
 	}
 );

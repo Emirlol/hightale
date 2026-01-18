@@ -24,6 +24,7 @@ use crate::{
 pub mod auth;
 pub mod camera;
 pub mod connection;
+pub mod interaction;
 pub mod interface;
 pub mod serveraccess;
 pub mod setup;
@@ -138,13 +139,13 @@ impl HytaleCodec for Vector3f {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Position {
+pub struct PositionF {
 	pub x: f64,
 	pub y: f64,
 	pub z: f64,
 }
 
-impl HytaleCodec for Position {
+impl HytaleCodec for PositionF {
 	fn encode(&self, buf: &mut BytesMut) {
 		buf.put_f64_le(self.x);
 		buf.put_f64_le(self.y);
@@ -170,13 +171,13 @@ define_enum! {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Direction {
+pub struct DirectionF {
 	pub yaw: f32,
 	pub pitch: f32,
 	pub roll: f32,
 }
 
-impl HytaleCodec for Direction {
+impl HytaleCodec for DirectionF {
 	fn encode(&self, buf: &mut BytesMut) {
 		buf.put_f32_le(self.yaw);
 		buf.put_f32_le(self.pitch);
@@ -300,7 +301,6 @@ impl HytaleCodec for ParamValue {
 				v.encode(buf);
 			}
 			ParamValue::Double(v) => {
-
 				VarInt(2).encode(buf);
 				v.encode(buf);
 			}
@@ -417,6 +417,67 @@ define_packet!(
 	}
 );
 
+define_enum! {
+	pub enum Rotation {
+		None = 0,
+		Ninety = 1,
+		OneEighty = 2,
+		TwoSeventy = 3,
+	}
+}
+
+define_packet! {
+	BlockRotation {
+		yaw: Rotation,
+		pitch: Rotation,
+		roll: Rotation,
+	}
+}
+
+define_enum! {
+	pub enum BlockFace {
+		None = 0,
+		Up = 1,
+		Down = 2,
+		North = 3,
+		South = 4,
+		East = 5,
+		West = 6,
+	}
+}
+
+define_packet! {
+	BlockPosition {
+		x: i32,
+		y: i32,
+		z: i32,
+	}
+}
+
+define_enum! {
+	pub enum MovementDirection {
+		None = 0,
+		Forward = 1,
+		Back = 2,
+		Left = 3,
+		Right = 4,
+		ForwardLeft = 5,
+		ForwardRight = 6,
+		BackLeft = 7,
+		BackRight = 8,
+	}
+}
+
+define_packet! {
+	SelectedHitEntity {
+		bitmask {
+			required network_id: i32,
+			opt hit_location: Vector3f [pad=12],
+			opt position: PositionF [pad=24],
+			opt body_rotation: DirectionF [pad=12]
+		}
+	}
+};
 
 // Helper struct so we can check compression before decoding
 pub struct PacketInfo {
@@ -574,4 +635,12 @@ packet_enum! {
 	281 => CameraShakeEffect(camera::CameraShakeEffect),
 	282 => RequestFlyCameraMode(camera::RequestFlyCameraMode),
 	283 => SetFlyCameraMode(camera::SetFlyCameraMode),
+
+	// Interaction
+	290 => SyncInteractionChains(interaction::SyncInteractionChains),
+	291 => CancelInteractionChain(interaction::CancelInteractionChain),
+	292 => PlayInteractionFor(interaction::PlayInteractionFor),
+	293 => MountNPC(interaction::MountNPC),
+	294 => DisountNPC(interaction::DismountNPC),
+
 }

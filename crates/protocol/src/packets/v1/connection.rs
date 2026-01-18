@@ -4,10 +4,7 @@ use bytes::Buf;
 use uuid::Uuid;
 
 use crate::{
-	codec::{
-		FixedAscii,
-		PacketError,
-	},
+	codec::FixedAscii,
 	define_enum,
 	define_packet,
 	packets::{

@@ -208,7 +208,6 @@ impl HytaleCodec for String {
 		buf.put_slice(self.as_bytes());
 	}
 
-	// String is basically LimitedString<4096000>
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let len_raw = VarInt::decode(buf)?.0;
 		if len_raw < 0 {
@@ -224,6 +223,76 @@ impl HytaleCodec for String {
 		let bytes = buf.copy_to_bytes(len);
 		let str = String::from_utf8(bytes.to_vec())?;
 		Ok(str)
+	}
+}
+
+/// A wrapper for Vec<Option<T>> that encodes validity as a bitmask before the items.
+#[derive(Debug, Clone)]
+pub struct BitOptionVec<T>(pub Vec<Option<T>>);
+
+impl<T> Deref for BitOptionVec<T> {
+	type Target = Vec<Option<T>>;
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
+
+impl<T> From<Vec<Option<T>>> for BitOptionVec<T> {
+	fn from(v: Vec<Option<T>>) -> Self {
+		BitOptionVec(v)
+	}
+}
+
+impl<T: HytaleCodec> HytaleCodec for BitOptionVec<T> {
+	fn encode(&self, buf: &mut BytesMut) {
+		let v = &self.0;
+		VarInt(v.len() as i32).encode(buf);
+
+		let bitfield_len = (v.len() + 7) / 8;
+		let mut bits = vec![0u8; bitfield_len];
+		for (i, item) in v.iter().enumerate() {
+			if item.is_some() {
+				bits[i / 8] |= 1 << (i % 8);
+			}
+		}
+		buf.put_slice(&bits);
+
+		for item in v {
+			if let Some(inner) = item {
+				inner.encode(buf);
+			}
+		}
+	}
+
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let count_raw = VarInt::decode(buf)?.0;
+		if count_raw < 0 {
+			return Err(PacketError::NegativeLength(count_raw));
+		} else if count_raw == 0 {
+			return Ok(BitOptionVec(vec![]));
+		} else if count_raw > MAX_SIZE {
+			return Err(PacketError::CollectionTooLarge { actual: count_raw, max_expected: MAX_SIZE });
+		}
+
+		let count = count_raw as usize;
+		let bitfield_len = (count + 7) / 8;
+
+		if buf.remaining() < bitfield_len {
+			return Err(PacketError::Incomplete);
+		}
+
+		let mut bits = vec![0u8; bitfield_len];
+		buf.copy_to_slice(&mut bits);
+
+		let mut list = Vec::with_capacity(count);
+		for i in 0..count {
+			if (bits[i / 8] & (1 << (i % 8))) != 0 {
+				list.push(Some(T::decode(buf)?));
+			} else {
+				list.push(None);
+			}
+		}
+		Ok(BitOptionVec(list))
 	}
 }
 

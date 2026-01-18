@@ -4,6 +4,7 @@ pub use v1::{
 	auth,
 	camera,
 	connection,
+	interaction,
 	interface,
 	is_id_compressed,
 	serveraccess,

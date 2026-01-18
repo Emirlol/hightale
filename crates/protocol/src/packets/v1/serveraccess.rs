@@ -19,8 +19,10 @@ define_packet!(
 
 define_packet!(
 	SetServerAccess {
-		bitmask {
+		fixed {
 			required access: Access,
+		}
+		variable {
 			opt password: String
 		}
 	}
@@ -28,8 +30,10 @@ define_packet!(
 
 define_packet!(
 	UpdateServerAccess {
-		bitmask {
+		fixed {
 			required access: Access,
+		}
+		variable {
 			opt hosts: Vec<HostAddress>
 		}
 	}

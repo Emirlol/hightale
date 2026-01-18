@@ -10,7 +10,6 @@ use crate::{
 
 define_packet!(
 	AuthGrant {
-		fixed {}
 		variable {
 			opt auth_grant: String,
 			opt server_identity: String,
@@ -20,7 +19,6 @@ define_packet!(
 
 define_packet!(
 	AuthToken {
-		fixed {}
 		variable {
 			opt access_token: String,
 			opt server_grant: String,
@@ -30,7 +28,6 @@ define_packet!(
 
 define_packet!(
 	ClientReferral {
-		fixed {}
 		variable {
 			opt host_to: HostAddress,
 			opt data: Bytes
@@ -40,7 +37,7 @@ define_packet!(
 
 define_packet!(
 	ConnectAccept {
-		bitmask {
+		fixed {
 			opt password_challenge: Bytes
 		}
 	}
@@ -51,7 +48,7 @@ define_packet!(PasswordAccepted {});
 
 define_packet!(
 	PasswordRejected {
-		bitmask {
+		fixed {
 			required attempts_remaining: i32,
 			opt new_challenge: Bytes,
 		}
@@ -60,7 +57,7 @@ define_packet!(
 
 define_packet!(
 	PasswordResponse {
-		bitmask {
+		fixed {
 			opt hash: Bytes
 		}
 	}
@@ -68,7 +65,6 @@ define_packet!(
 
 define_packet!(
 	ServerAuthToken {
-		fixed {}
 		variable {
 			opt server_access_token: String,
 			opt password_challenge: Bytes,
@@ -78,9 +74,11 @@ define_packet!(
 
 define_packet!(
 	Status {
-		bitmask {
+		fixed {
 			required player_count: i32,
 			required max_players: i32,
+		}
+		variable {
 			opt name: String,
 			opt motd: String,
 		}

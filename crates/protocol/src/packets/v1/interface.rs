@@ -11,7 +11,7 @@ use crate::packets::v1::{CraftingRecipe, FormattedMessage, ItemWithAllMetadata};
 
 define_packet!(
 	AddToServerPlayerList {
-		bitmask {
+		fixed { 
 			opt players: Vec<ServerPlayerListPlayer>
 		}
 	}
@@ -30,7 +30,7 @@ define_packet!(
 
 define_packet!(
 	ChatMessage {
-		bitmask {
+		fixed { 
 			opt message: String
 		}
 	}
@@ -51,8 +51,10 @@ define_enum! {
 
 define_packet!(
 	CustomHud {
-		bitmask {
+		fixed {
 			required clear: bool,
+		}
+		variable {
 			opt commands: Vec<CustomUICommand>
 		}
 	}
@@ -61,9 +63,9 @@ define_packet!(
 define_packet!(
 	CustomPage {
 		fixed {
-			is_initial: bool,
-			clear: bool,
-			lifetime: CustomPageLifetime,
+			required is_initial: bool,
+			required clear: bool,
+			required lifetime: CustomPageLifetime,
 		}
 		variable {
 			opt key: String,
@@ -76,7 +78,7 @@ define_packet!(
 define_packet!(
 	CustomPageEvent {
 		fixed {
-			custom_page_event_type: CustomPageEventType
+			required custom_page_event_type: CustomPageEventType
 		}
 		variable {
 			opt data: String
@@ -127,8 +129,8 @@ define_enum! {
 define_packet!(
 	CustomUIEventBinding {
 		fixed {
-			custom_ui_event_binding_type: CustomUIEventBindingType,
-			lock_interface: bool,
+			required custom_ui_event_binding_type: CustomUIEventBindingType,
+			required lock_interface: bool,
 		}
 		variable {
 			opt selector: String,
@@ -177,114 +179,19 @@ define_packet!(
 	}
 );
 
-// Hybrid of bitmask & offset table, manual impl
-#[derive(Debug, Clone)]
-pub struct EditorBlocksChange {
-	pub selection: Option<EditorSelection>, // Fixed bit 0
-	pub blocks_count: i32,                  // Fixed
-	pub advanced_preview: bool,             // Fixed
-	pub blocks_change: Option<Vec<BlockChange>>, // Variable bit 1
-	pub fluids_change: Option<Vec<FluidChange>>, // Variable bit 2
-}
-
-impl crate::codec::HytaleCodec for EditorBlocksChange {
-	fn encode(&self, buf: &mut bytes::BytesMut) {
-		use bytes::BufMut;
-
-		let mut null_bits: u8 = 0;
-		// Calculate bits
-		if self.selection.is_some() { null_bits |= 1; }
-		if self.blocks_change.is_some() { null_bits |= 2; }
-		if self.fluids_change.is_some() { null_bits |= 4; }
-
-		buf.put_u8(null_bits);
-
-		// Selection (Must occupy 24 bytes)
-		if let Some(sel) = &self.selection {
-			crate::codec::HytaleCodec::encode(sel, buf);
-		} else {
-			buf.put_bytes(0, 24); // Padding
+define_packet!(
+    EditorBlocksChange {
+        fixed {
+            opt(0) selection: EditorSelection [pad=24],
+            required blocks_count: i32,
+            required advanced_preview: bool,
+        }
+        variable {
+			opt(1) blocks_change: Vec<BlockChange>,
+			opt(2) fluids_change: Vec<FluidChange>,
 		}
-
-		buf.put_i32_le(self.blocks_count);
-		buf.put_u8(self.advanced_preview as u8);
-
-		let blocks_offset_pos = buf.len();
-		buf.put_i32_le(0);
-		let fluids_offset_pos = buf.len();
-		buf.put_i32_le(0);
-
-		let var_start = buf.len();
-
-		if let Some(v) = &self.blocks_change {
-			let offset = (buf.len() - var_start) as i32;
-			let ptr = buf.as_mut();
-			let offset_bytes = offset.to_le_bytes();
-			ptr[blocks_offset_pos..blocks_offset_pos+4].copy_from_slice(&offset_bytes);
-
-			crate::codec::HytaleCodec::encode(v, buf);
-		}
-
-
-		if let Some(v) = &self.fluids_change {
-			let offset = (buf.len() - var_start) as i32;
-			let ptr = buf.as_mut();
-			let offset_bytes = offset.to_le_bytes();
-			ptr[fluids_offset_pos..fluids_offset_pos+4].copy_from_slice(&offset_bytes);
-
-			crate::codec::HytaleCodec::encode(v, buf);
-		}
-	}
-
-	fn decode(buf: &mut impl bytes::Buf) -> crate::codec::PacketResult<Self> {
-		use bytes::Buf;
-		use std::io::Cursor;
-		use crate::codec::PacketContext;
-
-		let mut buf = Cursor::new(buf.copy_to_bytes(buf.remaining()));
-
-		if !buf.has_remaining() { return Err(crate::codec::PacketError::Incomplete); }
-		let null_bits = buf.get_u8();
-
-		let selection = if (null_bits & 1) != 0 {
-			Some(EditorSelection::decode(&mut buf).context("selection")?)
-		} else {
-			if buf.remaining() < 24 { return Err(crate::codec::PacketError::Incomplete); }
-			buf.advance(24);
-			None
-		};
-
-		let blocks_count = buf.get_i32_le();
-		let advanced_preview = buf.get_u8() != 0;
-
-		let blocks_offset = buf.get_i32_le();
-		let fluids_offset = buf.get_i32_le();
-
-		let var_start = buf.position();
-
-		let blocks_change = if (null_bits & 2) != 0 {
-			buf.set_position(var_start + blocks_offset as u64);
-			Some(<Vec<BlockChange> as crate::codec::HytaleCodec>::decode(&mut buf).context("blocks_change")?)
-		} else {
-			None
-		};
-
-		let fluids_change = if (null_bits & 4) != 0 {
-			buf.set_position(var_start + fluids_offset as u64);
-			Some(<Vec<FluidChange> as crate::codec::HytaleCodec>::decode(&mut buf).context("fluids_change")?)
-		} else {
-			None
-		};
-
-		Ok(Self {
-			selection,
-			blocks_count,
-			advanced_preview,
-			blocks_change,
-			fluids_change
-		})
-	}
-}
+    }
+);
 
 define_packet!(
 	FluidChange {
@@ -345,7 +252,7 @@ define_packet!(
 define_packet!(
 	Notification {
 		fixed {
-			style: NotificationStyle,
+			required style: NotificationStyle,
 		}
 		variable {
 			opt message: FormattedMessage,
@@ -367,7 +274,7 @@ define_enum! {
 
 define_packet!(
 	OpenChatWithCommand {
-		bitmask {
+		fixed {
 			opt command: String
 		}
 	}
@@ -388,9 +295,11 @@ define_enum! {
 
 define_packet!(
 	PortalDef {
-		bitmask {
+		fixed {
 			required exploration_seconds: i32,
 			required breach_seconds: i32,
+		}
+		variable {
 			opt name_key: String
 		}
 	}
@@ -405,7 +314,7 @@ define_packet!(
 
 define_packet!(
 	RemoveFromServerPlayerList {
-		bitmask {
+		fixed {
 			opt players: Vec<Uuid>,
 		}
 	}
@@ -418,7 +327,7 @@ define_packet!(
 define_packet!(
 	ServerInfo {
 		fixed {
-			max_players: i32
+			required max_players: i32
 		}
 		variable {
 			opt server_name: String,
@@ -429,8 +338,10 @@ define_packet!(
 
 define_packet!(
 	ServerMessage {
-		bitmask {
+		fixed {
 			required chat_type: ChatType,
+		}
+		variable {
 			opt message: FormattedMessage
 		}
 	}
@@ -438,10 +349,12 @@ define_packet!(
 
 define_packet!(
 	ServerPlayerListPlayer {
-		bitmask {
+		fixed {
 			required uuid: Uuid,
 			opt(1) world_uuid: Uuid [pad=16],
 			required pin: i32,
+		}
+		variable {
 			opt(0) username: String,
 		}
 	}
@@ -464,10 +377,10 @@ define_packet!(
 define_packet!(
 	ShowEventTitle {
 		fixed {
-			fade_in_duration: f32,
-			fade_out_duration: f32,
-			duration: f32,
-			is_major: bool
+			required fade_in_duration: f32,
+			required fade_out_duration: f32,
+			required duration: f32,
+			required is_major: bool
 		}
 		variable {
 			opt icon: String,
@@ -479,7 +392,7 @@ define_packet!(
 
 define_packet!(
 	UpdateKnownRecipes {
-		bitmask {
+		fixed { 
 			opt known: HashMap<String, CraftingRecipe>
 		}
 	}
@@ -487,7 +400,7 @@ define_packet!(
 
 define_packet!(
 	UpdateLanguage {
-		bitmask {
+		fixed { 
 			opt language: String
 		}
 	}
@@ -495,7 +408,6 @@ define_packet!(
 
 define_packet!(
 	UpdatePortal{
-		fixed {}
 		variable {
 			opt state: PortalState,
 			opt def: PortalDef,
@@ -505,7 +417,7 @@ define_packet!(
 
 define_packet!(
 	UpdateServerPlayerList {
-		bitmask {
+		fixed {
 			opt players: Vec<ServerPlayerListUpdate>
 		}
 	}
@@ -513,7 +425,7 @@ define_packet!(
 
 define_packet!(
 	UpdateServerPlayerListPing {
-		bitmask {
+		fixed {
 			opt players: HashMap<String, i32>
 		}
 	}
@@ -521,7 +433,7 @@ define_packet!(
 
 define_packet!(
 	UpdateVisibleHudComponents {
-		bitmask {
+		fixed {
 			opt components: Vec<HudComponent>
 		}
 	}

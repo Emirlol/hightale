@@ -1,6 +1,9 @@
 #![allow(unused_variables, clippy::enum_variant_names)]
 
-use std::collections::HashMap;
+use std::{
+	collections::HashMap,
+	io::Cursor,
+};
 
 use bytes::{
 	Buf,
@@ -20,10 +23,12 @@ use crate::{
 	define_enum,
 	define_packet,
 };
+use crate::codec::BitOptionVec;
 
 pub mod auth;
 pub mod camera;
 pub mod connection;
+pub mod entities;
 pub mod interaction;
 pub mod interface;
 pub mod serveraccess;
@@ -32,136 +37,22 @@ pub mod setup;
 /// Max size for variable length items, like strings, maps, lists, etc.
 pub const MAX_SIZE: i32 = 4_096_000;
 
-#[derive(Debug, Clone)]
-pub struct HostAddress {
-	pub port: u16,
-	pub host: String,
-}
+define_packet!(HostAddress { port: u16, host: String });
 
-impl HytaleCodec for HostAddress {
-	fn encode(&self, buf: &mut BytesMut) {
-		self.port.encode(buf);
-		self.host.encode(buf);
+define_packet!(
+	Asset {
+		hash: FixedAscii<64>, // 64-char Hex String
+		name: String,         // Filename (e.g. "models/player.json")
 	}
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		Ok(HostAddress {
-			port: <u16 as HytaleCodec>::decode(buf)?,
-			host: <String as HytaleCodec>::decode(buf)?,
-		})
-	}
-}
+);
 
-#[derive(Debug, Clone)]
-pub struct Asset {
-	pub hash: FixedAscii<64>, // 64-char Hex String
-	pub name: String,         // Filename (e.g. "models/player.json")
-}
+define_packet!(InstantData { seconds: i64, nanos: i32 });
 
-impl HytaleCodec for Asset {
-	fn encode(&self, buf: &mut BytesMut) {
-		<FixedAscii<64> as HytaleCodec>::encode(&self.hash, buf);
-		<String as HytaleCodec>::encode(&self.name, buf);
-	}
+define_packet!(Vector2f { x: f32, y: f32 });
 
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		Ok(Asset {
-			hash: <FixedAscii<64> as HytaleCodec>::decode(buf)?,
-			name: <String as HytaleCodec>::decode(buf)?,
-		})
-	}
-}
+define_packet!(Vector3f { x: f32, y: f32, z: f32 });
 
-#[derive(Debug, Clone)]
-pub struct InstantData {
-	pub seconds: i64,
-	pub nanos: i32,
-}
-
-impl HytaleCodec for InstantData {
-	fn encode(&self, buf: &mut BytesMut) {
-		<i64 as HytaleCodec>::encode(&self.seconds, buf);
-		<i32 as HytaleCodec>::encode(&self.nanos, buf);
-	}
-
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		Ok(InstantData {
-			seconds: <i64 as HytaleCodec>::decode(buf)?,
-			nanos: <i32 as HytaleCodec>::decode(buf)?,
-		})
-	}
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct Vector2f {
-	pub x: f32,
-	pub y: f32,
-}
-
-impl HytaleCodec for Vector2f {
-	fn encode(&self, buf: &mut BytesMut) {
-		buf.put_f32_le(self.x);
-		buf.put_f32_le(self.y);
-	}
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 8 {
-			return Err(PacketError::Incomplete);
-		}
-		Ok(Self {
-			x: buf.get_f32_le(),
-			y: buf.get_f32_le(),
-		})
-	}
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct Vector3f {
-	pub x: f32,
-	pub y: f32,
-	pub z: f32,
-}
-
-impl HytaleCodec for Vector3f {
-	fn encode(&self, buf: &mut BytesMut) {
-		buf.put_f32_le(self.x);
-		buf.put_f32_le(self.y);
-		buf.put_f32_le(self.z);
-	}
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 12 {
-			return Err(PacketError::Incomplete);
-		}
-		Ok(Self {
-			x: buf.get_f32_le(),
-			y: buf.get_f32_le(),
-			z: buf.get_f32_le(),
-		})
-	}
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct PositionF {
-	pub x: f64,
-	pub y: f64,
-	pub z: f64,
-}
-
-impl HytaleCodec for PositionF {
-	fn encode(&self, buf: &mut BytesMut) {
-		buf.put_f64_le(self.x);
-		buf.put_f64_le(self.y);
-		buf.put_f64_le(self.z);
-	}
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 12 {
-			return Err(PacketError::Incomplete);
-		}
-		Ok(Self {
-			x: buf.get_f64_le(),
-			y: buf.get_f64_le(),
-			z: buf.get_f64_le(),
-		})
-	}
-}
+define_packet!(PositionF { x: f64, y: f64, z: f64 });
 
 define_enum! {
 	pub enum PositionType {
@@ -170,30 +61,7 @@ define_enum! {
 	}
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct DirectionF {
-	pub yaw: f32,
-	pub pitch: f32,
-	pub roll: f32,
-}
-
-impl HytaleCodec for DirectionF {
-	fn encode(&self, buf: &mut BytesMut) {
-		buf.put_f32_le(self.yaw);
-		buf.put_f32_le(self.pitch);
-		buf.put_f32_le(self.roll);
-	}
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 12 {
-			return Err(PacketError::Incomplete);
-		}
-		Ok(Self {
-			yaw: buf.get_f32_le(),
-			pitch: buf.get_f32_le(),
-			roll: buf.get_f32_le(),
-		})
-	}
-}
+define_packet!(DirectionF { yaw: f32, pitch: f32, roll: f32 });
 
 define_enum! {
 	pub enum RotationType {
@@ -274,7 +142,7 @@ define_enum! {
 
 define_packet! {
 	StringParamValue {
-		bitmask {
+		fixed {
 			opt(0) value: String
 		}
 	}
@@ -332,11 +200,11 @@ impl HytaleCodec for ParamValue {
 define_packet! {
 	FormattedMessage {
 		fixed {
-			bold: MaybeBool,
-			italic: MaybeBool,
-			monospace: MaybeBool,
-			underlined: MaybeBool,
-			markup_enabled: bool,
+			required bold: MaybeBool,
+			required italic: MaybeBool,
+			required monospace: MaybeBool,
+			required underlined: MaybeBool,
+			required markup_enabled: bool,
 		}
 		variable {
 			opt raw_text: String,
@@ -353,10 +221,10 @@ define_packet! {
 define_packet!(
 	ItemWithAllMetadata {
 		fixed {
-			quantity: i32,
-			durability: f64,
-			max_durability: f64,
-			override_dropped_item_animation: bool
+			required quantity: i32,
+			required durability: f64,
+			required max_durability: f64,
+			required override_dropped_item_animation: bool
 		}
 		variable {
 			required item_id: String,
@@ -368,8 +236,8 @@ define_packet!(
 define_packet! {
 	MaterialQuantity {
 		fixed {
-			item_tag: i32,
-			quantity: i32
+			required item_tag: i32,
+			required quantity: i32
 		}
 		variable {
 			opt item_id: String,
@@ -390,8 +258,8 @@ define_enum!(
 define_packet!(
 	BenchRequirement {
 		fixed {
-			bench_type: BenchType,
-			required_tier_level: i32,
+			required bench_type: BenchType,
+			required required_tier_level: i32,
 		}
 		variable {
 			opt id: String,
@@ -403,9 +271,9 @@ define_packet!(
 define_packet!(
 	CraftingRecipe {
 		fixed {
-			knowledge_required: bool,
-			time_seconds: f32,
-			required_memories_level: i32
+			required knowledge_required: bool,
+			required time_seconds: f32,
+			required required_memories_level: i32
 		}
 		variable {
 			opt id: String,
@@ -470,14 +338,437 @@ define_enum! {
 
 define_packet! {
 	SelectedHitEntity {
-		bitmask {
+		fixed {
 			required network_id: i32,
 			opt hit_location: Vector3f [pad=12],
 			opt position: PositionF [pad=24],
 			opt body_rotation: DirectionF [pad=12]
 		}
 	}
-};
+}
+
+define_enum! {
+	pub enum ComponentUpdateType {
+		Nameplate = 0,
+		UIComponents = 1,
+		CombatText = 2,
+		Model = 3,
+		PlayerSkin = 4,
+		Item = 5,
+		Block = 6,
+		Equipment = 7,
+		EntityStats = 8,
+		Transform = 9,
+		MovementStates = 10,
+		EntityEffects = 11,
+		Interactions = 12,
+		DynamicLight = 13,
+		Interactable = 14,
+		Intangible = 15,
+		Invulnerable = 16,
+		RespondToHit = 17,
+		HitboxCollision = 18,
+		Repulsion = 19,
+		Prediction = 20,
+		Audio = 21,
+		Mounted = 22,
+		NewSpawn = 23,
+		ActiveAnimations = 24,
+	}
+}
+
+define_packet!(
+	Nameplate {
+		fixed {
+			opt text: String
+		}
+	}
+);
+
+define_packet!(
+	CombatTextUpdate {
+		fixed {
+			required hit_angle_deg: f32,
+			opt text: String
+		}
+	}
+);
+
+define_packet!(RangeF { min: f32, max: f32 });
+
+define_enum! {
+	pub enum CameraNode {
+		None = 0,
+		Head = 1,
+		LShoulder = 2,
+		RShoulder = 3,
+		Belly = 4,
+	}
+}
+
+define_packet!(
+	CameraAxis {
+		fixed {
+			opt angle_range: RangeF [pad=8],
+			opt target_nodes: Vec<CameraNode>,
+		}
+	}
+);
+
+define_packet!(
+	CameraSettings {
+		fixed {
+			opt position_offset: Vector3f [pad=12],
+		}
+		variable {
+			opt yaw: CameraAxis,
+			opt pitch: CameraAxis,
+			// No roll
+		}
+	}
+);
+
+define_packet!(
+	Animation {
+		fixed {
+			required speed: f32,
+			required blending_duration: f32,
+			required looping: bool,
+			required weight: f32,
+			required sound_event_indexx: i32,
+			required passive_loop_count: i32
+		}
+		variable {
+			opt name: String,
+			opt footstep_invervals_count: Vec<i32>
+		}
+	}
+);
+
+define_packet!(
+	AnimationSet {
+		fixed {
+			opt next_animation_delay: RangeF [pad=8],
+		}
+		variable {
+			opt id: String,
+			opt animations: Vec<Animation>,
+		}
+	}
+);
+
+define_packet!(
+	ModelAttachment {
+		variable {
+			opt model: String,
+			opt texture: String,
+			opt gradient_set: String,
+			opt gradient_id: String
+		}
+	}
+);
+
+define_packet!(Hitbox {
+	min_x: f32,
+	min_y: f32,
+	min_z: f32,
+	max_x: f32,
+	max_y: f32,
+	max_z: f32,
+});
+
+define_enum! {
+	pub enum EntityPart {
+		// This is supposed to be Self = 0 but that's a rust keyword, it can't even be used as r#Self.
+		This = 0,
+		Entity = 1,
+		PrimaryItem = 2,
+		SecondaryItem = 3
+	}
+}
+
+define_packet!(Color { red: u8, green: u8, blue: u8 });
+
+define_packet!(
+	ModelParticle {
+		fixed {
+			required scale: f32,
+			opt(1) color: Color [pad=3],
+			required target_entity_part: EntityPart,
+			opt(3) position_offset: Vector3f [pad=12],
+			opt(4) rotation_offset: DirectionF [pad=12],
+			required detached_from_model: bool,
+		}
+		variable {
+			opt(0) system_id: String,
+			opt(2) target_node_name: String
+		}
+	}
+);
+
+define_packet!(
+	ModelTrail {
+		fixed {
+			required target_entity_part: EntityPart,
+			opt(2) position_offset: Vector3f [pad=12],
+			opt(3) rotation_offset: DirectionF [pad=12],
+			required fixed_rotation: bool,
+		}
+		variable {
+			opt(0) trail_id: String,
+			opt(1) target_node_name: String
+		}
+	}
+);
+
+define_packet!(ColorLight {
+	radius: u8,
+	red: u8,
+	green: u8,
+	blue: u8,
+});
+
+define_packet!(
+	DetailBox {
+		fixed {
+			opt offset: Vector3f [pad=12],
+			opt r#box: Hitbox // Box is a keyword in rust
+		}
+	}
+);
+
+define_enum! {
+	pub enum Phobia {
+		None = 0,
+		Arachnophobia = 1
+	}
+}
+
+define_packet!(
+	Model {
+		mask_size: 2,
+		fixed {
+			required scale: f32,
+			required eye_height: f32,
+			required crouch_offset: f32,
+			opt(8) hitbox: Hitbox,
+			opt(11) light: ColorLight,
+			required phobia: Phobia,
+		}
+		variable {
+			opt(0) asset_id: String,
+			opt(1) path: String,
+			opt(2) texture: String,
+			opt(3) gradient_set: String,
+			opt(4) gradient_id: String,
+			opt(5) camera: CameraSettings,
+			opt(6) animation_sets: HashMap<String, AnimationSet>,
+			opt(7) attachments: Vec<ModelAttachment>,
+
+			opt(9) particles: Vec<ModelParticle>,
+			opt(10) trails: Vec<ModelTrail>,
+			opt(12) detail_boxes: HashMap<String, Vec<DetailBox>>,
+			opt(13) phobia_model: Box<Model>,
+		}
+	}
+);
+
+define_packet!(
+	Equipment {
+		variable {
+			opt armor_ids: Vec<String>,
+			opt right_hand_item_id: String,
+			opt left_hand_item_id: String,
+		}
+	}
+);
+
+define_enum! {
+	pub enum EntityStatOp {
+		Init = 0,
+		Remove = 1,
+		PutModifier = 2,
+		RemoveModifier = 3,
+		Add = 4,
+		Set = 5,
+		Minimize = 6,
+		Maximize = 7,
+		Reset = 8,
+	}
+}
+
+define_enum! {
+	pub enum ModifierTarget {
+		Min = 0,
+		Max = 1
+	}
+}
+
+define_enum! {
+	pub enum CalculationType {
+		Additive = 0,
+		Multiplicative = 1,
+	}
+}
+
+define_packet!(Modifier {
+	target: ModifierTarget,
+	calculation_type: CalculationType,
+	amount: f32,
+});
+
+define_packet!(
+	EntityStatUpdate {
+		fixed {
+			required op: EntityStatOp,
+			required predictable: bool,
+			required value: f32,
+			opt(2) modifier: Modifier [pad=6]
+		}
+		variable {
+			opt modifiers: HashMap<String, Modifier>,
+			opt modifier_key: String
+		}
+	}
+);
+
+define_packet!(
+	ModelTransform {
+		fixed {
+			opt position: PositionF [pad=24],
+			opt body_orientation: DirectionF [pad=12],
+			opt look_orientation: DirectionF [pad=12],
+		}
+	}
+);
+
+define_packet!(MovementStates {
+	idle: bool,
+	horizontal_idle: bool,
+	jumping: bool,
+	flying: bool,
+	walking: bool,
+	running: bool,
+	sprinting: bool,
+	crouching: bool,
+	forced_crouching: bool,
+	falling: bool,
+	climbing: bool,
+	in_fluid: bool,
+	swimming: bool,
+	swim_jumping: bool,
+	on_ground: bool,
+	mantling: bool,
+	sliding: bool,
+	mounting: bool,
+	rolling: bool,
+	sitting: bool,
+	gliding: bool,
+	sleeping: bool,
+});
+
+define_enum! {
+	pub enum EffectOp {
+		Add = 0,
+		Remove = 1
+	}
+}
+
+define_packet!(
+	EntityEffectUpdate {
+		fixed {
+			required effect_op: EffectOp,
+			required id: i32,
+			required remaining_time: f32,
+			required infinite: bool,
+			required debuff: bool,
+		}
+		variable {
+			opt status_effect_icon: String
+		}
+	}
+);
+
+define_enum!(
+	pub enum MountController {
+		Minecart = 0,
+		BlockMount = 1,
+	}
+);
+
+define_enum! {
+	pub enum BlockMountType {
+		Seat = 0,
+		Bed = 1
+	}
+}
+
+define_packet!(
+	BlockMount {
+		fixed {
+			required mount_type: BlockMountType,
+			opt position: Vector3f [pad=12],
+			opt orientation: Vector3f [pad=12],
+			required block_type_id: i32,
+		}
+	}
+);
+
+define_packet!(
+	MountedUpdate {
+		fixed {
+			required mounted_to_entity: i32,
+			opt attachment_offset: Vector3f [pad=12],
+			required mount_controller: MountController,
+			opt block: BlockMount [pad=30],
+		}
+	}
+);
+
+define_packet!(
+    ComponentUpdate {
+        mask_size: 3,
+        fixed {
+            required update_type: ComponentUpdateType,
+            required block_id: i32,
+            required entity_scale: f32,
+            opt(8) transform: ModelTransform [pad=49],
+            opt(9) movement_states: MovementStates [pad=22],
+            opt(12) dynamic_light: ColorLight [pad=4],
+            required hitbox_collision_config_index: i32,
+            required repulsion_config_index: i32,
+            required prediction_id: uuid::Uuid,
+            opt(15) mounted: MountedUpdate [pad=48],
+        }
+        variable {
+            opt(0) nameplate: Nameplate,
+            opt(1) entity_ui_components: Vec<i32>,
+            opt(2) combat_text_update: CombatTextUpdate,
+            opt(3) model: Model,
+            opt(4) skin: setup::PlayerSkin,
+            opt(5) item: ItemWithAllMetadata,
+            opt(6) equipment: Equipment,
+            opt(7) entity_stat_updates: HashMap<i32, Vec<EntityStatUpdate>>,
+            opt(10) entity_effect_updates: Vec<EntityEffectUpdate>,
+            opt(11) interactions: HashMap<interaction::InteractionType, i32>,
+            opt(13) sound_event_ids: Vec<i32>,
+            opt(14) interaction_hint: String,
+            opt(16) active_animations: BitOptionVec<String>,
+        }
+    }
+);
+
+define_packet!(
+	EntityUpdate {
+		fixed {
+			required network_id: i32
+		}
+		variable {
+			opt removed: Vec<ComponentUpdateType>,
+			opt updates: Vec<ComponentUpdate>
+		}
+	}
+);
 
 // Helper struct so we can check compression before decoding
 pub struct PacketInfo {
@@ -599,6 +890,15 @@ packet_enum! {
 	32 => ViewRadius(setup::ViewRadius),
 	33 => PlayerOptions(setup::PlayerOptions),
 	34 => ServerTags(setup::ServerTags),
+
+	// Entities
+	160 => SetEntitySeed(entities::SetEntitySeed),
+	161 => EntityUpdates(entities::EntityUpdates),
+	162 => PlayAnimation(entities::PlayAnimation),
+	163 => ChangeVelocity(entities::ChangeVelocity),
+	164 => ApplyKnockback(entities::ApplyKnockback),
+	165 => SpawnModelParticles(entities::SpawnModelParticles),
+	166 => MountMovement(entities::MountMovement),
 
 	// Interface
 	210 => ServerMessage(interface::ServerMessage),

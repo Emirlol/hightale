@@ -23,9 +23,9 @@ define_enum! {
 define_packet!(
 	Connect {
 		fixed {
-			protocol_hash: FixedAscii<64>,
-			client_type: ClientType,
-			uuid: Uuid,
+			required protocol_hash: FixedAscii<64>,
+			required client_type: ClientType,
+			required uuid: Uuid,
 		}
 		variable {
 			opt language: String,
@@ -46,7 +46,7 @@ define_enum! {
 
 define_packet!(
 	Disconnect {
-		bitmask {
+		fixed {
 			required disconnect_type: DisconnectType,
 			opt reason: String
 		}
@@ -55,7 +55,7 @@ define_packet!(
 
 define_packet!(
 	Ping {
-		bitmask {
+		fixed {
 			required id: i32,
 			opt time: InstantData [pad=12],
 			required last_ping_raw: i32,
@@ -75,7 +75,7 @@ define_enum! {
 
 define_packet!(
 	Pong {
-		bitmask {
+		fixed {
 			required id: i32,
 			opt time: InstantData [pad=12],
 			required pong_type: PongType,

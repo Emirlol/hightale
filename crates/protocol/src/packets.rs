@@ -6,6 +6,7 @@ pub use v1::{
 	connection,
 	interaction,
 	interface,
+	entities,
 	is_id_compressed,
 	serveraccess,
 	setup,

@@ -38,7 +38,7 @@ define_packet!(SetFlyCameraMode { entering: bool });
 
 define_packet!(
 	ServerCameraSettings {
-		bitmask {
+		fixed {
 			required position_lerp_speed: f32,
 			required rotation_lerp_speed: f32,
 			required distance: f32,
@@ -75,7 +75,7 @@ define_packet!(
 
 define_packet!(
 	SetServerCamera {
-		bitmask {
+		fixed {
 			required client_camera_view: ClientCameraView,
 			required is_locked: bool,
 			opt camera_settings: Box<ServerCameraSettings>, // Boxed to avoid large packet enum size

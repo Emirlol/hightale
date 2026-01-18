@@ -31,6 +31,7 @@ pub mod inventory;
 pub mod player;
 pub mod serveraccess;
 pub mod setup;
+pub mod window;
 
 /// Max size for variable length items, like strings, maps, lists, etc.
 pub const MAX_SIZE: i32 = 4_096_000;
@@ -936,6 +937,100 @@ define_enum! {
 	}
 }
 
+define_enum! {
+	pub enum WindowType {
+		Container = 0,
+		PocketCrafting = 1,
+		BasicCrafting = 2,
+		DiagramCrafting = 3,
+		StructuralCrafting = 4,
+		Processing = 5,
+		Memories = 6,
+	}
+}
+
+define_packet!(
+	ExtraResources {
+		fixed {
+			opt resources: Vec<ItemQuantity>
+		}
+	}
+);
+
+// Similar to ParamValue
+#[derive(Debug, Clone)]
+pub enum WindowAction {
+	CraftRecipeAction(window::CraftRecipeAction),
+	TierUpgradeAction(window::TierUpgradeAction),
+	SelectSlotAction(window::SelectSlotAction),
+	ChangeBlockAction(window::ChangeBlockAction),
+	SetActiveAction(window::SetActiveAction),
+	CraftItemAction(window::CraftItemAction),
+	UpdateCategoryAction(window::UpdateCategoryAction),
+	CancelCraftingAction(window::CancelCraftingAction),
+	SortItemsAction(window::SortItemsAction),
+}
+
+impl HytaleCodec for WindowAction {
+	fn encode(&self, buf: &mut BytesMut) {
+		match self {
+			WindowAction::CraftRecipeAction(v) => {
+				VarInt(0).encode(buf);
+				v.encode(buf);
+			}
+			WindowAction::TierUpgradeAction(v) => {
+				VarInt(1).encode(buf);
+				v.encode(buf);
+			}
+			WindowAction::SelectSlotAction(v) => {
+				VarInt(2).encode(buf);
+				v.encode(buf);
+			}
+			WindowAction::ChangeBlockAction(v) => {
+				VarInt(3).encode(buf);
+				v.encode(buf);
+			}
+			WindowAction::SetActiveAction(v) => {
+				VarInt(4).encode(buf);
+				v.encode(buf);
+			}
+			WindowAction::CraftItemAction(v) => {
+				VarInt(5).encode(buf);
+				v.encode(buf);
+			}
+			WindowAction::UpdateCategoryAction(v) => {
+				VarInt(6).encode(buf);
+				v.encode(buf);
+			}
+			WindowAction::CancelCraftingAction(v) => {
+				VarInt(7).encode(buf);
+				v.encode(buf);
+			}
+			WindowAction::SortItemsAction(v) => {
+				VarInt(8).encode(buf);
+				v.encode(buf);
+			}
+		}
+	}
+
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let type_id = VarInt::decode(buf)?.0;
+
+		match type_id {
+			0 => Ok(WindowAction::CraftRecipeAction(window::CraftRecipeAction::decode(buf)?)),
+			1 => Ok(WindowAction::TierUpgradeAction(window::TierUpgradeAction::decode(buf)?)),
+			2 => Ok(WindowAction::SelectSlotAction(window::SelectSlotAction::decode(buf)?)),
+			3 => Ok(WindowAction::ChangeBlockAction(window::ChangeBlockAction::decode(buf)?)),
+			4 => Ok(WindowAction::SetActiveAction(window::SetActiveAction::decode(buf)?)),
+			5 => Ok(WindowAction::CraftItemAction(window::CraftItemAction::decode(buf)?)),
+			6 => Ok(WindowAction::UpdateCategoryAction(window::UpdateCategoryAction::decode(buf)?)),
+			7 => Ok(WindowAction::CancelCraftingAction(window::CancelCraftingAction::decode(buf)?)),
+			8 => Ok(WindowAction::SortItemsAction(window::SortItemsAction::decode(buf)?)),
+			_ => Err(PacketError::InvalidEnumVariant(type_id as u8)),
+		}
+	}
+}
+
 // Helper struct so we can check compression before decoding
 pub struct PacketInfo {
 	pub compressed: bool,
@@ -1100,6 +1195,13 @@ packet_enum! {
 	178 => SwitchHotbarBlockSet(inventory::SwitchHotbarBlockSet),
 	179 => InventoryAction(inventory::InventoryAction),
 
+	// Window
+	200 => OpenWindow(window::OpenWindow) [compressed],
+	201 => UpdateWindow(window::UpdateWindow) [compressed],
+	202 => CloseWindow(window::CloseWindow),
+	203 => SendWindowAction(window::SendWindowAction),
+	204 => ClientOpenWindow(window::ClientOpenWindow),
+
 	// Interface
 	210 => ServerMessage(interface::ServerMessage),
 	211 => ChatMessage(interface::ChatMessage),
@@ -1142,5 +1244,4 @@ packet_enum! {
 	292 => PlayInteractionFor(interaction::PlayInteractionFor),
 	293 => MountNPC(interaction::MountNPC),
 	294 => DisountNPC(interaction::DismountNPC),
-
 }

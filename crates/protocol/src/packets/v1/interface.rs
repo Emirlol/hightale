@@ -100,9 +100,10 @@ define_enum! {
 
 define_packet!(
 	CustomUICommand {
-		fixed {}
+		fixed {
+			required custom_ui_command_type: CustomUICommandType,
+		}
 		variable {
-			opt custom_ui_command_type: CustomUICommandType,
 			opt selector: String,
 			opt data: String,
 			opt text: String

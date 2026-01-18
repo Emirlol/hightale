@@ -21,8 +21,6 @@ define_packet!(
 	SetServerAccess {
 		fixed {
 			required access: Access,
-		}
-		variable {
 			opt password: String
 		}
 	}
@@ -32,8 +30,6 @@ define_packet!(
 	UpdateServerAccess {
 		fixed {
 			required access: Access,
-		}
-		variable {
 			opt hosts: Vec<HostAddress>
 		}
 	}

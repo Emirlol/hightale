@@ -53,8 +53,6 @@ define_packet!(
 	CustomHud {
 		fixed {
 			required clear: bool,
-		}
-		variable {
 			opt commands: Vec<CustomUICommand>
 		}
 	}
@@ -78,9 +76,7 @@ define_packet!(
 define_packet!(
 	CustomPageEvent {
 		fixed {
-			required custom_page_event_type: CustomPageEventType
-		}
-		variable {
+			required custom_page_event_type: CustomPageEventType,
 			opt data: String
 		}
 	}
@@ -298,8 +294,6 @@ define_packet!(
 		fixed {
 			required exploration_seconds: i32,
 			required breach_seconds: i32,
-		}
-		variable {
 			opt name_key: String
 		}
 	}
@@ -340,8 +334,6 @@ define_packet!(
 	ServerMessage {
 		fixed {
 			required chat_type: ChatType,
-		}
-		variable {
 			opt message: FormattedMessage
 		}
 	}
@@ -353,8 +345,6 @@ define_packet!(
 			required uuid: Uuid,
 			opt(1) world_uuid: Uuid [pad=16],
 			required pin: i32,
-		}
-		variable {
 			opt(0) username: String,
 		}
 	}

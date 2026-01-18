@@ -76,8 +76,6 @@ define_packet!(
 		fixed {
 			opt damage_source_position: Vector3d [pad=24],
 			required damage_amount: f32,
-		}
-		variable {
 			opt damage_cause: DamageCause
 		}
 	}
@@ -124,7 +122,7 @@ define_packet!(
 
 define_packet!(
 	RemoveMapMarker {
-		variable {
+		fixed {
 			opt marker_id: String
 		}
 	}

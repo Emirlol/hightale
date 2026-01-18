@@ -680,8 +680,6 @@ define_packet!(
 			required remaining_time: f32,
 			required infinite: bool,
 			required debuff: bool,
-		}
-		variable {
 			opt status_effect_icon: String
 		}
 	}
@@ -771,9 +769,7 @@ define_packet!(
 define_packet!(
 	ItemQuantity {
 		fixed {
-			required quantity: i32
-		}
-		variable {
+			required quantity: i32,
 			opt item_id: String,
 		}
 	}
@@ -833,8 +829,6 @@ define_packet!(
 	MouseMotionEvent {
 		fixed {
 			opt relative_motion: Vector2i [pad=8],
-		}
-		variable {
 			opt mouse_button_type: Vec<MouseButtonType>,
 		}
 	}

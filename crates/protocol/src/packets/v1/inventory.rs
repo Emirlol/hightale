@@ -74,7 +74,7 @@ define_packet!(SmartMoveItemStack {
 
 define_packet!(
 	SwitchHotbarBlockSet {
-		variable {
+		fixed {
 			opt item_id: String
 		}
 	}
@@ -83,9 +83,7 @@ define_packet!(
 define_packet!(
 	InventorySection {
 		fixed {
-			required capacity: i16
-		}
-		variable {
+			required capacity: i16,
 			opt items: HashMap<i32, ItemWithAllMetadata>
 		}
 	}

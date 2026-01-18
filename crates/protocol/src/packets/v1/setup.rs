@@ -18,7 +18,7 @@ define_packet!(
 
 define_packet!(
 	AssetPart {
-		fixed { 
+		fixed {
 			opt part: Bytes
 		}
 	}
@@ -67,7 +67,7 @@ define_packet!(
 
 define_packet!(
 	PlayerOptions {
-		fixed { 
+		fixed {
 			opt player_skin: Box<PlayerSkin>, // Box it since it's like 480 bytes and it bloats the largest packet size in the packet enum
 		}
 	}
@@ -75,7 +75,7 @@ define_packet!(
 
 define_packet!(
 	RemoveAssets {
-		fixed { 
+		fixed {
 			opt assets: Vec<Asset>,
 		}
 	}
@@ -83,7 +83,7 @@ define_packet!(
 
 define_packet!(
 	RequestAssets {
-		fixed { 
+		fixed {
 			opt assets: Vec<Asset>,
 		}
 	}
@@ -96,7 +96,7 @@ define_packet!(
 
 define_packet!(
 	ServerTags {
-		fixed { 
+		fixed {
 			opt tags: HashMap<String, i32>,
 		}
 	}
@@ -116,7 +116,7 @@ define_packet!(
 
 define_packet!(
 	UpdateFeatures {
-		variable {
+		fixed {
 			opt features: HashMap<ClientFeature, bool>,
 		}
 	}
@@ -136,8 +136,6 @@ define_packet!(
 		fixed {
 			required percent_complete: i32,
 			required percent_complete_subitem: i32,
-		}
-		variable {
 			opt message: String,
 		}
 	}
@@ -147,8 +145,6 @@ define_packet!(
 	WorldSettings {
 		fixed {
 			required world_height: i32,
-		}
-		variable {
 			opt required_assets: Vec<Asset>
 		}
 	}

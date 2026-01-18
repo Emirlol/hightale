@@ -102,8 +102,6 @@ define_packet!(
 	SpawnModelParticles {
 		fixed {
 			required entity_id: i32,
-		}
-		variable {
 			opt model_particles: Vec<ModelParticle>
 		}
 	}

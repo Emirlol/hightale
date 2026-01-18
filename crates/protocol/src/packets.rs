@@ -14,6 +14,7 @@ pub use v1::{
 	setup,
 	window,
 	world,
+	worldmap,
 	Asset,
 	HostAddress,
 	Packet,

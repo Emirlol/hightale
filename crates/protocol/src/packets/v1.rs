@@ -33,6 +33,7 @@ pub mod serveraccess;
 pub mod setup;
 pub mod window;
 pub mod world;
+pub mod worldmap;
 
 /// Max size for variable length items, like strings, maps, lists, etc.
 pub const MAX_SIZE: i32 = 4_096_000;
@@ -1056,6 +1057,15 @@ define_enum! {
 	}
 }
 
+define_packet!(
+	Transform {
+		fixed {
+			opt position: PositionF [pad=24],
+			opt orientation: DirectionF [pad=12],
+		}
+	}
+);
+
 // Helper struct so we can check compression before decoding
 pub struct PacketInfo {
 	pub compressed: bool,
@@ -1279,6 +1289,14 @@ packet_enum! {
 	232 => UpdateLanguage(interface::UpdateLanguage),
 	233 => WorldSavingStatus(interface::WorldSavingStatus),
 	234 => OpenChatWithCommand(interface::OpenChatWithCommand),
+
+	// World Map
+	240 => UpdateWorldMapSettings(worldmap::UpdateWorldMapSettings),
+	241 => UpdateWorldMap(worldmap::UpdateWorldMap) [compressed],
+	242 => ClearWorldMap(worldmap::ClearWorldMap),
+	243 => UpdateWorldMapVisible(worldmap::UpdateWorldMapVisible),
+	244 => TeleportToWorldMapMarker(worldmap::TeleportToWorldMapMarker),
+	245 => TeleportToWorldMapPosition(worldmap::TeleportToWorldMapPosition),
 
 	// Server Access
 	250 => RequestServerAccess(serveraccess::RequestServerAccess),

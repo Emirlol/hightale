@@ -6,6 +6,7 @@ use crate::{
 	packets::v1::{
 		ItemQuantity,
 		ItemWithAllMetadata,
+		SortType,
 	},
 };
 
@@ -91,6 +92,9 @@ define_packet!(
 
 define_packet!(
 	UpdatePlayerInventory {
+		fixed {
+			required sort_type: SortType,
+		}
 		variable {
 			opt storage: InventorySection,
 			opt armor: InventorySection,

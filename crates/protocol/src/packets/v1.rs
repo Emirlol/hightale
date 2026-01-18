@@ -928,6 +928,14 @@ define_packet!(MovementSettings {
 	roll_time_to_complete: f32,
 });
 
+define_enum! {
+	pub enum SortType {
+		Name = 0,
+		Type = 1,
+		Rarity = 2,
+	}
+}
+
 // Helper struct so we can check compression before decoding
 pub struct PacketInfo {
 	pub compressed: bool,

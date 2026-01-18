@@ -549,8 +549,8 @@ define_packet!(
 			required scale: f32,
 			required eye_height: f32,
 			required crouch_offset: f32,
-			opt(8) hitbox: Hitbox,
-			opt(11) light: ColorLight,
+			opt(8) hitbox: Hitbox [pad=24],
+			opt(11) light: ColorLight [pad=4],
 			required phobia: Phobia,
 		}
 		variable {

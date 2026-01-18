@@ -248,7 +248,7 @@ impl<T: HytaleCodec> HytaleCodec for BitOptionVec<T> {
 		let v = &self.0;
 		VarInt(v.len() as i32).encode(buf);
 
-		let bitfield_len = (v.len() + 7) / 8;
+		let bitfield_len = v.len().div_ceil(8);
 		let mut bits = vec![0u8; bitfield_len];
 		for (i, item) in v.iter().enumerate() {
 			if item.is_some() {
@@ -257,10 +257,8 @@ impl<T: HytaleCodec> HytaleCodec for BitOptionVec<T> {
 		}
 		buf.put_slice(&bits);
 
-		for item in v {
-			if let Some(inner) = item {
-				inner.encode(buf);
-			}
+		for item in v.iter().flatten() {
+			item.encode(buf);
 		}
 	}
 
@@ -275,7 +273,7 @@ impl<T: HytaleCodec> HytaleCodec for BitOptionVec<T> {
 		}
 
 		let count = count_raw as usize;
-		let bitfield_len = (count + 7) / 8;
+		let bitfield_len = count.div_ceil(8);
 
 		if buf.remaining() < bitfield_len {
 			return Err(PacketError::Incomplete);

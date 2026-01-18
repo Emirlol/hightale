@@ -183,9 +183,7 @@ impl PlayerConnection {
 		let len = self.recv.read_i32_le().await? as usize;
 		let id = self.recv.read_i32_le().await?;
 
-		if len == 0 {
-			bail!("Invalid Packet Length: 0");
-		} else if len > 1677721600 {
+		if len > 1677721600 {
 			bail!("Invalid Packet Length: {}", len);
 		}
 

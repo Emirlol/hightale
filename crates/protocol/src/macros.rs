@@ -215,13 +215,22 @@ macro_rules! define_packet {
     (@decode_field_multi $buf:ident $bits:ident $shift:ident $field:ident opt $t:ty, [ $pad:literal ]) => {
         {
             let is_set = ($bits[$shift / 8] & (1 << ($shift % 8))) != 0;
+            let start_pos = $buf.position();
             let val = if is_set {
                 Some(<$t as $crate::codec::HytaleCodec>::decode(&mut $buf).context(stringify!($field))?)
             } else {
-                if $buf.remaining() < $pad { return Err($crate::codec::PacketError::Incomplete); }
-                $buf.advance($pad);
                 None
             };
+
+            let consumed = $buf.position() - start_pos;
+            if consumed > $pad {
+                 return Err($crate::codec::PacketError::CollectionTooLarge { actual: consumed as i32, max_expected: $pad as i32 }).context(stringify!($field));
+            }
+            if $buf.remaining() < ($pad - consumed) as usize {
+                 return Err($crate::codec::PacketError::Incomplete).context(stringify!($field));
+            }
+            $buf.set_position(start_pos + $pad);
+
             $shift += 1;
             val
         }

@@ -34,6 +34,7 @@ pub mod setup;
 pub mod window;
 pub mod world;
 pub mod worldmap;
+pub mod machinima;
 
 /// Max size for variable length items, like strings, maps, lists, etc.
 pub const MAX_SIZE: i32 = 4_096_000;
@@ -1302,6 +1303,11 @@ packet_enum! {
 	250 => RequestServerAccess(serveraccess::RequestServerAccess),
 	251 => UpdateServerAccess(serveraccess::UpdateServerAccess),
 	252 => SetServerAccess(serveraccess::SetServerAccess),
+
+	// Machinima
+	260 => RequestMachinimaActorModel(machinima::RequestMachinimaActorModel),
+	261 => SetMachinimaActorModel(machinima::SetMachinimaActorModel),
+	262 => UpdateMachinimaScene(machinima::UpdateMachinimaScene) [compressed],
 
 	// Camera
 	280 => SetServerCamera(camera::SetServerCamera),

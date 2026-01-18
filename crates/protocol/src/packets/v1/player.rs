@@ -66,7 +66,7 @@ define_packet!(
 	ClientTeleport {
 		fixed {
 			required teleport_id: u8,
-			opt model_transform: ModelTransform [pad=48],
+			opt model_transform: ModelTransform [pad=49],
 			required reset_velocity: bool,
 		}
 	}

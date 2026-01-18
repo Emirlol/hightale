@@ -13,6 +13,7 @@ pub use v1::{
 	serveraccess,
 	setup,
 	window,
+	world,
 	Asset,
 	HostAddress,
 	Packet,

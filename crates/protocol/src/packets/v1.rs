@@ -32,6 +32,7 @@ pub mod player;
 pub mod serveraccess;
 pub mod setup;
 pub mod window;
+pub mod world;
 
 /// Max size for variable length items, like strings, maps, lists, etc.
 pub const MAX_SIZE: i32 = 4_096_000;
@@ -1031,6 +1032,30 @@ impl HytaleCodec for WindowAction {
 	}
 }
 
+define_enum! {
+	pub enum SoundCategory {
+		Music = 0,
+		Ambient = 1,
+		SFX = 2,
+		UI = 3,
+	}
+}
+
+define_enum! {
+	pub enum BlockParticleEvent {
+		Walk = 0,
+		Run = 1,
+		Sprint = 2,
+		SoftLand = 3,
+		HardLand = 4,
+		MoveOut = 5,
+		Hit = 6,
+		Break = 7,
+		Build = 8,
+		Physics = 9,
+	}
+}
+
 // Helper struct so we can check compression before decoding
 pub struct PacketInfo {
 	pub compressed: bool,
@@ -1173,6 +1198,34 @@ packet_enum! {
 	117 => ClientPlaceBlock(player::ClientPlaceBlock),
 	118 => UpdateMemoriesFeatureStatus(player::UpdateMemoriesFeatureStatus),
 	119 => RemoveMapMarker(player::RemoveMapMarker),
+
+	// World
+	131 => SetChunk(world::SetChunk) [compressed],
+	132 => SetChunkHeightmap(world::SetChunkHeightmap) [compressed],
+	133 => SetChunkTintmap(world::SetChunkTintmap) [compressed],
+	134 => SetChunkEnvironments(world::SetChunkEnvironments) [compressed],
+	135 => UnloadChunk(world::UnloadChunk),
+	136 => SetFluids(world::SetFluids) [compressed], // There is a gap here even though it's still the same section
+	140 => ServerSetBlock(world::ServerSetBlock),
+	141 => ServerSetBlocks(world::ServerSetBlocks),
+	142 => ServerSetFluid(world::ServerSetFluid),
+	143 => ServerSetFluids(world::ServerSetFluids),
+	144 => UpdateBlockDamage(world::UpdateBlockDamage),
+	145 => UpdateTimeSettings(world::UpdateTimeSettings),
+	146 => UpdateTime(world::UpdateTime),
+	147 => UpdateEditorTimeOverride(world::UpdateEditorTimeOverride),
+	148 => ClearEditorTimeOverride(world::ClearEditorTimeOverride),
+	149 => UpdateWeather(world::UpdateWeather),
+	150 => UpdateEditorWeatherOverride(world::UpdateEditorWeatherOverride),
+	151 => UpdateEnvironmentMusic(world::UpdateEnvironmentMusic),
+	152 => SpawnParticleSystem(world::SpawnParticleSystem),
+	153 => SpawnBlockParticleSystem(world::SpawnBlockParticleSystem),
+	154 => PlaySoundEvent2D(world::PlaySoundEvent2D),
+	155 => PlaySoundEvent3D(world::PlaySoundEvent3D),
+	156 => PlaySoundEventEntity(world::PlaySoundEventEntity),
+	157 => UpdateSleepState(world::UpdateSleepState),
+	158 => SetPaused(world::SetPaused),
+	159 => ServerSetPaused(world::ServerSetPaused),
 
 	// Entities
 	160 => SetEntitySeed(entities::SetEntitySeed),

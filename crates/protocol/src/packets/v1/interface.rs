@@ -416,7 +416,7 @@ define_packet!(
 define_packet!(
 	UpdateServerPlayerListPing {
 		fixed {
-			opt players: HashMap<String, i32>
+			opt players: HashMap<Uuid, i32>
 		}
 	}
 );

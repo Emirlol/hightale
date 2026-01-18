@@ -9,6 +9,7 @@ pub use v1::{
 	interface,
 	inventory,
 	is_id_compressed,
+	machinima,
 	player,
 	serveraccess,
 	setup,

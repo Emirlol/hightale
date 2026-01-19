@@ -4224,7 +4224,7 @@ define_packet! {
 			required light_influence: f32,
 			required linear_filtering: bool,
 			opt(8) particle_life_span: RangeF [pad=8],
-			opt(11) intersection_highlight: IntersectionHighlight [pad=24],
+			opt(11) intersection_highlight: IntersectionHighlight [pad=8],
 		}
 		variable {
 			opt(0) id: String,

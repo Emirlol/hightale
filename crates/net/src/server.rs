@@ -28,7 +28,10 @@ use rustls::{
 	Error,
 	SignatureScheme,
 };
-use tracing::{debug, error, info};
+use tracing::{
+	error,
+	info,
+};
 
 use crate::{
 	auth::ServerAuthManager,
@@ -46,7 +49,9 @@ struct AllowAnyClientCertVerifier {
 impl AllowAnyClientCertVerifier {
 	fn new() -> Self {
 		Self {
-			supported_algs: rustls::crypto::CryptoProvider::get_default().expect("No default crypto provider found").signature_verification_algorithms,
+			supported_algs: rustls::crypto::CryptoProvider::get_default()
+				.expect("No default crypto provider found")
+				.signature_verification_algorithms,
 		}
 	}
 }

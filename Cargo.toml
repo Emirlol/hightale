@@ -48,6 +48,7 @@ urlencoding = "2.1"
 rustyline = "17"
 is-terminal = "0.4"
 hex = "0.4"
+ordered-float = "5.1"
 
 # Internal crate references
 protocol = { path = "crates/protocol" }

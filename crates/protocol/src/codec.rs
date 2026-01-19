@@ -17,10 +17,11 @@ use bytes::{
 	BytesMut,
 };
 use fmt::Formatter;
+use ordered_float::OrderedFloat;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::packets::MAX_SIZE;
+use crate::v1::MAX_SIZE;
 
 #[derive(Debug, Error)]
 pub enum PacketError {
@@ -58,7 +59,10 @@ pub type PacketResult<T> = Result<T, PacketError>;
 
 /// A trait for types that can be written to the buffer
 pub trait HytaleCodec: Sized {
+	/// Encodes the instance into the buffer.
 	fn encode(&self, buf: &mut BytesMut);
+	/// Decodes an instance of the type from the buffer.
+	/// This must not consume more bytes than necessary, as the same buffer may be used to decode multiple fields.
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self>;
 }
 
@@ -214,7 +218,10 @@ impl HytaleCodec for String {
 			return Err(PacketError::NegativeLength(len_raw));
 		}
 		if len_raw > MAX_SIZE {
-			return Err(PacketError::StringTooLong { actual: len_raw, max_expected: MAX_SIZE });
+			return Err(PacketError::StringTooLong {
+				actual: len_raw,
+				max_expected: MAX_SIZE,
+			});
 		}
 		let len = len_raw as usize;
 		if buf.remaining() < len {
@@ -269,7 +276,10 @@ impl<T: HytaleCodec> HytaleCodec for BitOptionVec<T> {
 		} else if count_raw == 0 {
 			return Ok(BitOptionVec(vec![]));
 		} else if count_raw > MAX_SIZE {
-			return Err(PacketError::CollectionTooLarge { actual: count_raw, max_expected: MAX_SIZE });
+			return Err(PacketError::CollectionTooLarge {
+				actual: count_raw,
+				max_expected: MAX_SIZE,
+			});
 		}
 
 		let count = count_raw as usize;
@@ -466,3 +476,50 @@ impl<T: HytaleCodec> HytaleCodec for Box<T> {
 		Ok(Box::new(T::decode(buf)?))
 	}
 }
+
+impl<T: HytaleCodec + Copy> HytaleCodec for OrderedFloat<T> {
+	fn encode(&self, buf: &mut BytesMut) {
+		self.0.encode(buf);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		Ok(OrderedFloat(T::decode(buf)?))
+	}
+}
+
+// Tuples
+macro_rules! tuple_impl {
+    ($($name:ident),+) => {
+		impl<$($name: HytaleCodec),+> HytaleCodec for ($($name,)+) {
+			fn encode(&self, buf: &mut BytesMut) {
+				#[allow(non_snake_case)] // It's a lot of work to make the names snake_case while keeping the types UpperCamelCase
+				let ($($name,)+) = self;
+				$(
+					$name.encode(buf);
+				)+
+			}
+			fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+				Ok((
+					$(
+						$name::decode(buf).context(stringify!($name))?,
+					)+
+				))
+			}
+		}
+	};
+}
+
+macro_rules! impl_all_tuples {
+    () => {};
+
+    ($first:ident, $($rest:ident),+) => {
+        tuple_impl!($first, $($rest),+);
+        impl_all_tuples!($($rest),+);
+    };
+    ($first:ident) => {
+        tuple_impl!($first);
+    };
+}
+impl_all_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);
+
+
+

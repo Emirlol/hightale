@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::auth::ServerAuthManager;
 use anyhow::{
 	anyhow,
 	bail,
@@ -11,17 +10,19 @@ use bytes::{
 	BufMut,
 	BytesMut,
 };
-use protocol::codec::FixedAscii;
-use protocol::packets::connection::DisconnectType;
 use protocol::{
-	packets,
-	packets::{
+	codec::FixedAscii,
+	v1,
+	v1::{
 		auth::{
 			AuthGrant,
 			ConnectAccept,
 			ServerAuthToken,
 		},
-		connection::Disconnect,
+		connection::{
+			Disconnect,
+			DisconnectType,
+		},
 		Packet,
 	},
 };
@@ -37,6 +38,8 @@ use tracing::{
 	warn,
 };
 use uuid::Uuid;
+
+use crate::auth::ServerAuthManager;
 
 const EXPECTED_HASH: FixedAscii<64> = FixedAscii(*b"6708f121966c1c443f4b0eb525b2f81d0a8dc61f5003a692a8fa157e5e02cea9");
 
@@ -190,7 +193,7 @@ impl PlayerConnection {
 		let mut buf = BytesMut::zeroed(len); // This can't be just `with_capacity` because its length would be 0, which is what's used in read_exact. That means 0 bytes will be read.
 		self.recv.read_exact(&mut buf).await?;
 
-		let is_compressed = packets::is_id_compressed(id);
+		let is_compressed = v1::is_id_compressed(id);
 
 		let mut final_data = if is_compressed && !buf.is_empty() {
 			let mut writer = BytesMut::with_capacity(buf.len() + 1024).writer();

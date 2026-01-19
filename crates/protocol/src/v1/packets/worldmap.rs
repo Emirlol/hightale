@@ -33,7 +33,7 @@ define_packet! { MapImage {
 	fixed {
 		required width: i32,
 		required height: i32,
-		opt data: Bytes
+		opt data: Vec<i32>
 	}
 } }
 define_packet! { MapMarker {

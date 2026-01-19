@@ -3815,14 +3815,14 @@ define_packet! {
 define_packet! {
 	ItemPlayerAnimations {
 		fixed {
-			opt(2) wigge_weights: WiggleWeights [pad=40],
+			opt(2) wiggle_weights: WiggleWeights [pad=40],
 			opt(4) pullback_config: ItemPullbackConfiguration [pad=49],
 			required use_first_person_override: bool
 		}
 		variable {
-			opt id: String,
-			opt animations: HashMap<String, ItemAnimation>,
-			opt camera: CameraSettings
+			opt(0) id: String,
+			opt(1) animations: HashMap<String, ItemAnimation>,
+			opt(3) camera: CameraSettings
 		}
 	}
 }

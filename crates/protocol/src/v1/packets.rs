@@ -4171,7 +4171,7 @@ define_packet! {
 	ParticleAnimationFrame {
 		fixed {
 			opt frame_index: RangeI [pad=8],
-			opt scale: RangeVector2f [pad=18],
+			opt scale: RangeVector2f [pad=17],
 			opt rotation: RangeVector3f [pad=25],
 			opt color: Color [pad=3],
 			required opacity: f32,

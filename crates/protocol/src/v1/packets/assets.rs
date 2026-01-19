@@ -48,6 +48,7 @@ use super::{
 	WorldEnvironment,
 };
 use crate::define_packet;
+use crate::v1::RootInteraction;
 
 define_packet! {
 	TrackOrUpdateObjective {
@@ -424,7 +425,7 @@ define_packet! {
 		fixed {
 			required update_type: UpdateType,
 			required max_id: i32,
-			opt root_interactions: HashMap<i32, Interaction>,
+			opt root_interactions: HashMap<i32, RootInteraction>,
 		}
 	}
 }

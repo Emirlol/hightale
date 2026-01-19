@@ -65,10 +65,8 @@ define_packet! { ServerSetBlock {
 	rotation: u8
 } }
 define_packet! { ServerSetBlocks {
-	fixed {
-		required pos: Vector3i,
-		opt cmds: Vec<SetBlockCmd>
-	}
+	pos: Vector3i,
+	cmds: Vec<SetBlockCmd>
 } }
 define_packet! { ServerSetFluid {
 	pos: Vector3i,
@@ -76,10 +74,8 @@ define_packet! { ServerSetFluid {
 	fluid_level: u8,
 } }
 define_packet! { ServerSetFluids {
-	fixed {
-		required pos: Vector3i,
-		opt cmds: Vec<SetFluidCmd>
-	}
+	pos: Vector3i,
+	cmds: Vec<SetFluidCmd>
 } }
 define_packet! { ServerSetPaused { paused: bool } }
 define_packet! { SetBlockCmd {

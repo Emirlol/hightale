@@ -1696,7 +1696,7 @@ define_packet! {
 			required group: i32,
 			opt(19) movement_settings: BlockMovementSettings [pad=42],
 			opt(20) flags: BlockFlags [pad=2],
-			opt(23) placement_settings: BlockPlacementSettings [pad=16],
+			opt(23) placement_settings: BlockPlacementSettings [pad=15],
 			required ignore_support_when_placed: bool,
 			required transition_to_tag: i32,
 		}

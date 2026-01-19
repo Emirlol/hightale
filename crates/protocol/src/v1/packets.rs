@@ -2016,7 +2016,7 @@ define_packet! {
 			opt hitbox_offset: Vector2f [pad=8],
 			required unknown: bool,
 			required entity_stat_index: i32,
-			opt combat_text_random_position_offset_range: RangeVector2f [pad=16],
+			opt combat_text_random_position_offset_range: RangeVector2f [pad=17],
 			required combat_text_viewport_margin: f32,
 			required combat_text_duration: f32,
 			required combat_text_hit_angle_modifier_strength: f32,

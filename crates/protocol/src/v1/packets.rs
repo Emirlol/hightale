@@ -296,7 +296,7 @@ define_packet! {
 		   opt inputs: Vec<MaterialQuantity>,
 		   opt outputs: Vec<MaterialQuantity>,
 		   opt primary_output: MaterialQuantity,
-		   opt bench_requirement: BenchRequirement,
+		   opt bench_requirement: Vec<BenchRequirement>,
 	   }
    }
 }

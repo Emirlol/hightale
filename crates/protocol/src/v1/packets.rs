@@ -4693,7 +4693,7 @@ define_packet! {
 			opt(3) end: Edge [pad=9],
 			required light_influence: f32,
 			required render_mode: FXRenderMode,
-			opt(4) intersection_highlight: IntersectionHighlight [pad=24],
+			opt(4) intersection_highlight: IntersectionHighlight [pad=8],
 			required smooth: bool,
 			opt(5) frame_size: Size [pad=8],
 			opt(6) frame_range: RangeI [pad=8],

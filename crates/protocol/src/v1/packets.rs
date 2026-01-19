@@ -2192,7 +2192,7 @@ define_packet! {
 			required wait_for_animation_to_finish: bool,
 			required clear_animation_on_finish: bool,
 			required clear_sound_event_on_finish: bool,
-			opt(5) camera_shake: wCameraShakeEffect [pad=9],
+			opt(5) camera_shake: CameraShakeEffect [pad=9],
 			opt(6) movement_effects: MovementEffects [pad=7],
 			required start_delay: f32,
 		}

@@ -4769,7 +4769,7 @@ define_packet! {
 		mask_size: 4
 		fixed {
 			opt(24) fog: NearFar [pad=8],
-			opt(25) fog_options: FogOptions [pad=8]
+			opt(25) fog_options: FogOptions [pad=18]
 		}
 		variable {
 			opt(0) id: String,

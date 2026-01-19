@@ -49,6 +49,7 @@ use super::{
 	RootInteraction
 };
 use crate::define_packet;
+use crate::v1::AudioCategory;
 
 define_packet! {
 	TrackOrUpdateObjective {
@@ -79,7 +80,7 @@ define_packet! {
 		fixed {
 			required update_type: UpdateType,
 			required max_id: i32,
-			opt categories: HashMap<i32, String>,
+			opt categories: HashMap<i32, AudioCategory>,
 		}
 	}
 }

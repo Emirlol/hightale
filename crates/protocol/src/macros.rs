@@ -46,12 +46,14 @@ macro_rules! define_enum {
             fn decode(buf: &mut impl bytes::Buf) -> $crate::codec::PacketResult<Self> {
                 #[allow(unused_imports)]
                 use $crate::codec::PacketError;
+                #[allow(unused_imports)]
+                use $crate::codec::PacketContext;
 
                 if !buf.has_remaining() {
-                    return Err(PacketError::Incomplete);
+                    return Err(PacketError::Incomplete).context(stringify!($name));
                 }
                 let val = buf.get_u8();
-                Self::from_u8(val).ok_or_else(|| PacketError::InvalidEnumVariant(val))
+                Self::from_u8(val).ok_or_else(|| PacketError::InvalidEnumVariant(val)).context(stringify!($name))
             }
         }
 
@@ -203,10 +205,11 @@ macro_rules! define_packet {
                 #[allow(unused_imports)]
                 use $crate::codec::PacketContext;
 
-                if !buf.has_remaining() { return Err($crate::codec::PacketError::Incomplete); }
+                if !buf.has_remaining() { return Err($crate::codec::PacketError::Incomplete).context("the whole buf"); }
 
                 const MASK_SIZE: usize = 0 $( + $mask_bytes )? + (1 * (0 $( + $mask_bytes )? == 0) as usize);
-                if buf.remaining() < MASK_SIZE { return Err($crate::codec::PacketError::Incomplete); }
+                let remaining = buf.remaining();
+                if remaining < MASK_SIZE { return Err($crate::codec::PacketError::IncompleteBytes { found: remaining, expected: MASK_SIZE }).context("mask bytes"); }
 
                 let mut null_bits = [0u8; MASK_SIZE];
                 buf.copy_to_slice(&mut null_bits);
@@ -282,9 +285,11 @@ macro_rules! define_packet {
 
         let consumed = start - $buf.remaining();
 
-        if consumed > $pad { return Err($crate::codec::PacketError::Incomplete); }
+        // TODO: Maybe consider a different error here later
+        if consumed > $pad { return Err($crate::codec::PacketError::DecodedMoreThanPadding { actual: consumed, pad: $pad }).context(stringify!($field)); }
         let padding = $pad - consumed;
-        if $buf.remaining() < padding { return Err($crate::codec::PacketError::Incomplete); }
+        let remaining = $buf.remaining();
+        if remaining < padding { return Err($crate::codec::PacketError::IncompleteBytes { found: remaining, expected: padding }).context(stringify!($field)); }
         $buf.advance(padding);
 
         $shift += 1;
@@ -311,7 +316,8 @@ macro_rules! define_packet {
             if is_set {
                 Some(<$t as $crate::codec::HytaleCodec>::decode($buf).context(stringify!($field))?)
             } else {
-                if $buf.remaining() < $pad { return Err($crate::codec::PacketError::Incomplete); }
+                let remaining = $buf.remaining();
+                if remaining < $pad { return Err($crate::codec::PacketError::IncompleteBytes { found: remaining, expected: $pad }).context(stringify!($field)); }
                 $buf.advance($pad);
                 None
             }
@@ -332,10 +338,11 @@ macro_rules! define_packet {
     (@stream_decode_body $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $read_bytes:ident opt $type:ty, $field:ident ( $expl:literal )) => {
         if ($bits[$expl / 8] & (1 << ($expl % 8))) != 0 {
              let target_offset = $offsets[$off_idx];
-             if target_offset < $read_bytes { return Err($crate::codec::PacketError::Incomplete); }
+             if target_offset < $read_bytes { return Err($crate::codec::PacketError::IncompleteBytes { found: $read_bytes as usize, expected: target_offset as usize }).context(stringify!($field)); }
 
              let skip = (target_offset - $read_bytes) as usize;
-             if $buf.remaining() < skip { return Err($crate::codec::PacketError::Incomplete); }
+             let remaining = $buf.remaining();
+             if remaining < skip { return Err($crate::codec::PacketError::IncompleteBytes { found: remaining, expected: skip } ).context(stringify!($field)); }
              $buf.advance(skip);
              $read_bytes += skip as i32;
 
@@ -351,10 +358,11 @@ macro_rules! define_packet {
     (@stream_decode_body $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $read_bytes:ident opt $type:ty, $field:ident) => {
         if ($bits[$bit_idx / 8] & (1 << ($bit_idx % 8))) != 0 {
              let target_offset = $offsets[$off_idx];
-             if target_offset < $read_bytes { return Err($crate::codec::PacketError::Incomplete); }
+             if target_offset < $read_bytes { return Err($crate::codec::PacketError::IncompleteBytes { found: $read_bytes as usize, expected: target_offset as usize }).context(stringify!($field)); }
 
              let skip = (target_offset - $read_bytes) as usize;
-             if $buf.remaining() < skip { return Err($crate::codec::PacketError::Incomplete); }
+             let remaining = $buf.remaining();
+             if remaining < skip { return Err($crate::codec::PacketError::IncompleteBytes { found: remaining, expected: skip }).context(stringify!($field)); }
              $buf.advance(skip);
              $read_bytes += skip as i32;
 
@@ -370,10 +378,11 @@ macro_rules! define_packet {
     (@stream_decode_body $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $read_bytes:ident required $type:ty, $field:ident ( $ign:literal )) => {
          {
              let target_offset = $offsets[$off_idx];
-             if target_offset < $read_bytes { return Err($crate::codec::PacketError::Incomplete); }
+             if target_offset < $read_bytes { return Err($crate::codec::PacketError::IncompleteBytes { found: $read_bytes as usize, expected: target_offset as usize }).context(stringify!($field)); }
 
              let skip = (target_offset - $read_bytes) as usize;
-             if $buf.remaining() < skip { return Err($crate::codec::PacketError::Incomplete); }
+             let remaining = $buf.remaining();
+             if remaining < skip { return Err($crate::codec::PacketError::IncompleteBytes { found: remaining, expected: skip }).context(stringify!($field)); }
              $buf.advance(skip);
              $read_bytes += skip as i32;
 
@@ -387,10 +396,11 @@ macro_rules! define_packet {
     (@stream_decode_body $buf:ident $bits:ident $bit_idx:ident $offsets:ident $off_idx:ident $read_bytes:ident required $type:ty, $field:ident) => {
          {
              let target_offset = $offsets[$off_idx];
-             if target_offset < $read_bytes { return Err($crate::codec::PacketError::Incomplete); }
+             if target_offset < $read_bytes { return Err($crate::codec::PacketError::IncompleteBytes { found: $read_bytes as usize, expected: target_offset as usize }).context(stringify!($field)); }
 
              let skip = (target_offset - $read_bytes) as usize;
-             if $buf.remaining() < skip { return Err($crate::codec::PacketError::Incomplete); }
+             let remaining = $buf.remaining();
+             if remaining < skip { return Err($crate::codec::PacketError::IncompleteBytes { found: remaining, expected: skip }).context(stringify!($field)); }
              $buf.advance(skip);
              $read_bytes += skip as i32;
 

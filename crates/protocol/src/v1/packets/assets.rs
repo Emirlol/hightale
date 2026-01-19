@@ -46,9 +46,9 @@ use super::{
 	ViewBobbing,
 	Weather,
 	WorldEnvironment,
+	RootInteraction
 };
 use crate::define_packet;
-use crate::v1::RootInteraction;
 
 define_packet! {
 	TrackOrUpdateObjective {

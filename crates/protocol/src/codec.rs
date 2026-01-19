@@ -29,6 +29,10 @@ pub enum PacketError {
 	Context(String, #[source] Box<PacketError>),
 	#[error("Incomplete packet")]
 	Incomplete,
+	#[error("Incomplete packet: expected at least {expected} bytes, found {found} bytes")]
+	IncompleteBytes { found: usize, expected: usize },
+	#[error("Decoding took more bytes than given padding bytes: actual: {actual} > expected max: {pad}")]
+	DecodedMoreThanPadding { actual: usize, pad: i32 },
 	#[error("String too long: actual: {actual} > expected max: {max_expected}")]
 	StringTooLong { actual: i32, max_expected: i32 },
 	#[error("Negative length: {0}")]
@@ -520,6 +524,3 @@ macro_rules! impl_all_tuples {
     };
 }
 impl_all_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);
-
-
-

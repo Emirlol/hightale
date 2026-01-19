@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use bytes::Bytes;
-
 use super::Transform;
 use crate::define_packet;
 

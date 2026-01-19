@@ -4093,7 +4093,7 @@ define_packet! {
 			required block_id: i32,
 			opt(12) glider_config: ItemGlider [pad=16],
 			opt(14) block_selector_tool: BlockSelectorToolData [pad=4],
-			opt(22) light: ColorLight [pad=8],
+			opt(22) light: ColorLight [pad=4],
 			required durability: f64,
 			required sound_event_index: i32,
 			required item_sound_set_index: i32,

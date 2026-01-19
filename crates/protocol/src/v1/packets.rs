@@ -2130,7 +2130,7 @@ define_packet! {
 			required color_saturation: f32,
 			required distortion_amplitude: f32,
 			required distortion_frequency: f32,
-			opt(5) movement_settings: FluidFXMovementSettings [pad=32],
+			opt(5) movement_settings: FluidFXMovementSettings [pad=24],
 		}
 		variable {
 			opt(0) id: String,

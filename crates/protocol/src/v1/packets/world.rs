@@ -156,7 +156,7 @@ define_packet! { SpawnParticleSystem {
 		opt position: PositionF [pad=24],
 		opt rotation: DirectionF [pad=12],
 		required scale: f32,
-		opt color: Color [pad=16],
+		opt color: Color [pad=3],
 		opt particle_system_id: String
 	}
 } }

@@ -3836,12 +3836,13 @@ define_packet! {
 			required hide_from_search: bool,
 		}
 		variable {
-			opt item_tooltip_texture: String,
-			opt item_tooltip_arrow_texture: String,
-			opt slot_texture: String,
-			opt block_slot_texture: String,
-			opt special_slot_texture: String,
-			opt localization_key: String
+			opt(0) id: String,
+			opt(1) item_tooltip_texture: String,
+			opt(2) item_tooltip_arrow_texture: String,
+			opt(3) slot_texture: String,
+			opt(4) block_slot_texture: String,
+			opt(5) special_slot_texture: String,
+			opt(7) localization_key: String
 		}
 	}
 }

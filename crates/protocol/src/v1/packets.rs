@@ -19,6 +19,7 @@ use crate::{
 		BitOptionVec,
 		FixedAscii,
 		HytaleCodec,
+		PacketContext,
 		PacketError,
 		PacketResult,
 		VarInt,
@@ -3478,293 +3479,90 @@ define_packet! {
 	}
 }
 
-#[derive(Debug, Clone)]
-pub enum Interaction {
-	SimpleBlockInteraction(SimpleBlockInteraction),
-	SimpleInteraction(SimpleInteraction),
-	PlaceBlockInteraction(PlaceBlockInteraction),
-	BreakBlockInteraction(BreakBlockInteraction),
-	PickBlockInteraction(PickBlockInteraction),
-	UseBlockInteraction(UseBlockInteraction),
-	UseEntityInteraction(UseEntityInteraction),
-	BuilderToolInteraction(BuilderToolInteraction),
-	ModifyInventoryInteraction(ModifyInventoryInteraction),
-	ChargingInteraction(ChargingInteraction),
-	WieldingInteraction(WieldingInteraction),
-	ChainingInteraction(ChainingInteraction),
-	ConditionInteraction(ConditionInteraction),
-	StatsConditionInteraction(StatsConditionInteraction),
-	BlockConditionInteraction(BlockConditionInteraction),
-	ReplaceInteraction(ReplaceInteraction),
-	ChangeBlockInteraction(ChangeBlockInteraction),
-	ChangeStateInteraction(ChangeStateInteraction),
-	FirstClickInteraction(FirstClickInteraction),
-	RefillContainerInteraction(RefillContainerInteraction),
-	SelectInteraction(SelectInteraction),
-	DamageEntityInteraction(DamageEntityInteraction),
-	RepeatInteraction(RepeatInteraction),
-	ParallelInteraction(ParallelInteraction),
-	ChangeActiveSlotInteraction(ChangeActiveSlotInteraction),
-	EffectConditionInteraction(EffectConditionInteraction),
-	ApplyForceInteraction(ApplyForceInteraction),
-	ApplyEffectInteraction(ApplyEffectInteraction),
-	ClearEntityEffectInteraction(ClearEntityEffectInteraction),
-	SerialInteraction(SerialInteraction),
-	ChangeStatInteraction(ChangeStatInteraction),
-	MovementConditionInteraction(MovementConditionInteraction),
-	ProjectileInteraction(ProjectileInteraction),
-	RemoveEntityInteraction(RemoveEntityInteraction),
-	ResetCooldownInteraction(ResetCooldownInteraction),
-	TriggerCooldownInteraction(TriggerCooldownInteraction),
-	CooldownConditionInteraction(CooldownConditionInteraction),
-	ChainFlagInteraction(ChainFlagInteraction),
-	IncrementCooldownInteraction(IncrementCooldownInteraction),
-	CancelChainInteraction(CancelChainInteraction),
-	RunRootInteraction(RunRootInteraction),
-	CameraInteraction(CameraInteraction),
-	SpawnDeployableFromRaycastInteraction(SpawnDeployableFromRaycastInteraction),
-	MemoriesConditionInteraction(MemoriesConditionInteraction),
-	ToggleGliderInteraction(ToggleGliderInteraction),
+macro_rules! impl_interaction_packet {
+    ( $($id:literal => $name:ident),* $(,)? ) => {
+
+        #[derive(Clone, Debug)]
+        pub enum Interaction {
+            $(
+                $name($name),
+            )*
+        }
+
+        impl HytaleCodec for Interaction {
+            fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+                let type_id = VarInt::decode(buf)?.0;
+
+                match type_id {
+                    $(
+                        $id => Ok(Interaction::$name(
+                            $name::decode(buf).context(concat!("enum variant ", stringify!($name), " (", stringify!($id), ")"))?
+                        )),
+                    )*
+                    _ => Err(PacketError::InvalidEnumVariant(type_id as u8)),
+                }
+            }
+
+            fn encode(&self, buf: &mut BytesMut) {
+                match self {
+                    $(
+                        Interaction::$name(inner) => {
+                            VarInt($id).encode(buf);
+                            inner.encode(buf);
+                        }
+                    )*
+                }
+            }
+        }
+    };
 }
 
-impl HytaleCodec for Interaction {
-	fn encode(&self, buf: &mut BytesMut) {
-		match self {
-			Interaction::SimpleBlockInteraction(interaction) => {
-				VarInt(0).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::SimpleInteraction(interaction) => {
-				VarInt(1).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::PlaceBlockInteraction(interaction) => {
-				VarInt(2).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::BreakBlockInteraction(interaction) => {
-				VarInt(3).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::PickBlockInteraction(interaction) => {
-				VarInt(4).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::UseBlockInteraction(interaction) => {
-				VarInt(5).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::UseEntityInteraction(interaction) => {
-				VarInt(6).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::BuilderToolInteraction(interaction) => {
-				VarInt(7).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ModifyInventoryInteraction(interaction) => {
-				VarInt(8).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ChargingInteraction(interaction) => {
-				VarInt(9).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::WieldingInteraction(interaction) => {
-				VarInt(10).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ChainingInteraction(interaction) => {
-				VarInt(11).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ConditionInteraction(interaction) => {
-				VarInt(12).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::StatsConditionInteraction(interaction) => {
-				VarInt(13).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::BlockConditionInteraction(interaction) => {
-				VarInt(14).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ReplaceInteraction(interaction) => {
-				VarInt(15).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ChangeBlockInteraction(interaction) => {
-				VarInt(16).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ChangeStateInteraction(interaction) => {
-				VarInt(17).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::FirstClickInteraction(interaction) => {
-				VarInt(18).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::RefillContainerInteraction(interaction) => {
-				VarInt(19).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::SelectInteraction(interaction) => {
-				VarInt(20).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::DamageEntityInteraction(interaction) => {
-				VarInt(21).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::RepeatInteraction(interaction) => {
-				VarInt(22).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ParallelInteraction(interaction) => {
-				VarInt(23).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ChangeActiveSlotInteraction(interaction) => {
-				VarInt(24).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::EffectConditionInteraction(interaction) => {
-				VarInt(25).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ApplyForceInteraction(interaction) => {
-				VarInt(26).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ApplyEffectInteraction(interaction) => {
-				VarInt(27).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ClearEntityEffectInteraction(interaction) => {
-				VarInt(28).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::SerialInteraction(interaction) => {
-				VarInt(29).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ChangeStatInteraction(interaction) => {
-				VarInt(30).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::MovementConditionInteraction(interaction) => {
-				VarInt(31).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ProjectileInteraction(interaction) => {
-				VarInt(32).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::RemoveEntityInteraction(interaction) => {
-				VarInt(33).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ResetCooldownInteraction(interaction) => {
-				VarInt(34).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::TriggerCooldownInteraction(interaction) => {
-				VarInt(35).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::CooldownConditionInteraction(interaction) => {
-				VarInt(36).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ChainFlagInteraction(interaction) => {
-				VarInt(37).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::IncrementCooldownInteraction(interaction) => {
-				VarInt(38).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::CancelChainInteraction(interaction) => {
-				VarInt(39).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::RunRootInteraction(interaction) => {
-				VarInt(40).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::CameraInteraction(interaction) => {
-				VarInt(41).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::SpawnDeployableFromRaycastInteraction(interaction) => {
-				VarInt(42).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::MemoriesConditionInteraction(interaction) => {
-				VarInt(43).encode(buf);
-				interaction.encode(buf);
-			}
-			Interaction::ToggleGliderInteraction(interaction) => {
-				VarInt(44).encode(buf);
-				interaction.encode(buf);
-			}
-		}
-	}
-
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		let type_id = VarInt::decode(buf)?.0;
-
-		match type_id {
-			0 => Ok(Interaction::SimpleBlockInteraction(SimpleBlockInteraction::decode(buf)?)),
-			1 => Ok(Interaction::SimpleInteraction(SimpleInteraction::decode(buf)?)),
-			2 => Ok(Interaction::PlaceBlockInteraction(PlaceBlockInteraction::decode(buf)?)),
-			3 => Ok(Interaction::BreakBlockInteraction(BreakBlockInteraction::decode(buf)?)),
-			4 => Ok(Interaction::PickBlockInteraction(PickBlockInteraction::decode(buf)?)),
-			5 => Ok(Interaction::UseBlockInteraction(UseBlockInteraction::decode(buf)?)),
-			6 => Ok(Interaction::UseEntityInteraction(UseEntityInteraction::decode(buf)?)),
-			7 => Ok(Interaction::BuilderToolInteraction(BuilderToolInteraction::decode(buf)?)),
-			8 => Ok(Interaction::ModifyInventoryInteraction(ModifyInventoryInteraction::decode(buf)?)),
-			9 => Ok(Interaction::ChargingInteraction(ChargingInteraction::decode(buf)?)),
-			10 => Ok(Interaction::WieldingInteraction(WieldingInteraction::decode(buf)?)),
-			11 => Ok(Interaction::ChainingInteraction(ChainingInteraction::decode(buf)?)),
-			12 => Ok(Interaction::ConditionInteraction(ConditionInteraction::decode(buf)?)),
-			13 => Ok(Interaction::StatsConditionInteraction(StatsConditionInteraction::decode(buf)?)),
-			14 => Ok(Interaction::BlockConditionInteraction(BlockConditionInteraction::decode(buf)?)),
-			15 => Ok(Interaction::ReplaceInteraction(ReplaceInteraction::decode(buf)?)),
-			16 => Ok(Interaction::ChangeBlockInteraction(ChangeBlockInteraction::decode(buf)?)),
-			17 => Ok(Interaction::ChangeStateInteraction(ChangeStateInteraction::decode(buf)?)),
-			18 => Ok(Interaction::FirstClickInteraction(FirstClickInteraction::decode(buf)?)),
-			19 => Ok(Interaction::RefillContainerInteraction(RefillContainerInteraction::decode(buf)?)),
-			20 => Ok(Interaction::SelectInteraction(SelectInteraction::decode(buf)?)),
-			21 => Ok(Interaction::DamageEntityInteraction(DamageEntityInteraction::decode(buf)?)),
-			22 => Ok(Interaction::RepeatInteraction(RepeatInteraction::decode(buf)?)),
-			23 => Ok(Interaction::ParallelInteraction(ParallelInteraction::decode(buf)?)),
-			24 => Ok(Interaction::ChangeActiveSlotInteraction(ChangeActiveSlotInteraction::decode(buf)?)),
-			25 => Ok(Interaction::EffectConditionInteraction(EffectConditionInteraction::decode(buf)?)),
-			26 => Ok(Interaction::ApplyForceInteraction(ApplyForceInteraction::decode(buf)?)),
-			27 => Ok(Interaction::ApplyEffectInteraction(ApplyEffectInteraction::decode(buf)?)),
-			28 => Ok(Interaction::ClearEntityEffectInteraction(ClearEntityEffectInteraction::decode(buf)?)),
-			29 => Ok(Interaction::SerialInteraction(SerialInteraction::decode(buf)?)),
-			30 => Ok(Interaction::ChangeStatInteraction(ChangeStatInteraction::decode(buf)?)),
-			31 => Ok(Interaction::MovementConditionInteraction(MovementConditionInteraction::decode(buf)?)),
-			32 => Ok(Interaction::ProjectileInteraction(ProjectileInteraction::decode(buf)?)),
-			33 => Ok(Interaction::RemoveEntityInteraction(RemoveEntityInteraction::decode(buf)?)),
-			34 => Ok(Interaction::ResetCooldownInteraction(ResetCooldownInteraction::decode(buf)?)),
-			35 => Ok(Interaction::TriggerCooldownInteraction(TriggerCooldownInteraction::decode(buf)?)),
-			36 => Ok(Interaction::CooldownConditionInteraction(CooldownConditionInteraction::decode(buf)?)),
-			37 => Ok(Interaction::ChainFlagInteraction(ChainFlagInteraction::decode(buf)?)),
-			38 => Ok(Interaction::IncrementCooldownInteraction(IncrementCooldownInteraction::decode(buf)?)),
-			39 => Ok(Interaction::CancelChainInteraction(CancelChainInteraction::decode(buf)?)),
-			40 => Ok(Interaction::RunRootInteraction(RunRootInteraction::decode(buf)?)),
-			41 => Ok(Interaction::CameraInteraction(CameraInteraction::decode(buf)?)),
-			42 => Ok(Interaction::SpawnDeployableFromRaycastInteraction(SpawnDeployableFromRaycastInteraction::decode(buf)?)),
-			43 => Ok(Interaction::MemoriesConditionInteraction(MemoriesConditionInteraction::decode(buf)?)),
-			44 => Ok(Interaction::ToggleGliderInteraction(ToggleGliderInteraction::decode(buf)?)),
-			_ => Err(PacketError::InvalidEnumVariant(type_id as u8)),
-		}
-	}
+impl_interaction_packet! {
+    0  => SimpleBlockInteraction,
+    1  => SimpleInteraction,
+    2  => PlaceBlockInteraction,
+    3  => BreakBlockInteraction,
+    4  => PickBlockInteraction,
+    5  => UseBlockInteraction,
+    6  => UseEntityInteraction,
+    7  => BuilderToolInteraction,
+    8  => ModifyInventoryInteraction,
+    9  => ChargingInteraction,
+    10 => WieldingInteraction,
+    11 => ChainingInteraction,
+    12 => ConditionInteraction,
+    13 => StatsConditionInteraction,
+    14 => BlockConditionInteraction,
+    15 => ReplaceInteraction,
+    16 => ChangeBlockInteraction,
+    17 => ChangeStateInteraction,
+    18 => FirstClickInteraction,
+    19 => RefillContainerInteraction,
+    20 => SelectInteraction,
+    21 => DamageEntityInteraction,
+    22 => RepeatInteraction,
+    23 => ParallelInteraction,
+    24 => ChangeActiveSlotInteraction,
+    25 => EffectConditionInteraction,
+    26 => ApplyForceInteraction,
+    27 => ApplyEffectInteraction,
+    28 => ClearEntityEffectInteraction,
+    29 => SerialInteraction,
+    30 => ChangeStatInteraction,
+    31 => MovementConditionInteraction,
+    32 => ProjectileInteraction,
+    33 => RemoveEntityInteraction,
+    34 => ResetCooldownInteraction,
+    35 => TriggerCooldownInteraction,
+    36 => CooldownConditionInteraction,
+    37 => ChainFlagInteraction,
+    38 => IncrementCooldownInteraction,
+    39 => CancelChainInteraction,
+    40 => RunRootInteraction,
+    41 => CameraInteraction,
+    42 => SpawnDeployableFromRaycastInteraction,
+    43 => MemoriesConditionInteraction,
+    44 => ToggleGliderInteraction,
 }
 
 define_packet! {

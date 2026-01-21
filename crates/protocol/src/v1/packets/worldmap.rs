@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-use super::Transform;
-use crate::define_packet;
+use crate::{
+	define_packet,
+	v1::Transform,
+};
 
 define_packet! { BiomeData {
 	fixed {

@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use super::{
-	ItemQuantity,
-	ItemWithAllMetadata,
-	SortType,
-};
 use crate::{
 	define_enum,
 	define_packet,
+	v1::{
+		ItemQuantity,
+		ItemWithAllMetadata,
+		SortType,
+	},
 };
 
 define_packet! { DropCreativeItem { item: ItemQuantity } }
@@ -74,35 +74,35 @@ define_packet! { SmartMoveItemStack {
 } }
 
 define_packet! {
-   SwitchHotbarBlockSet {
-	   fixed {
-		   opt item_id: String
-	   }
-   }
+	SwitchHotbarBlockSet {
+		fixed {
+			opt item_id: String
+		}
+	}
 }
 
 define_packet! {
-   InventorySection {
-	   fixed {
-		   required capacity: i16,
-		   opt items: HashMap<i32, ItemWithAllMetadata>
-	   }
-   }
+	InventorySection {
+		fixed {
+			required capacity: i16,
+			opt items: HashMap<i32, ItemWithAllMetadata>
+		}
+	}
 }
 
 define_packet! {
-   UpdatePlayerInventory {
-	   fixed {
-		   required sort_type: SortType,
-	   }
-	   variable {
-		   opt storage: InventorySection,
-		   opt armor: InventorySection,
-		   opt hotbar: InventorySection,
-		   opt utility: InventorySection,
-		   opt builder_material: InventorySection,
-		   opt tools: InventorySection,
-		   opt backpack: InventorySection,
-	   }
-   }
+	UpdatePlayerInventory {
+		fixed {
+			required sort_type: SortType,
+		}
+		variable {
+			opt storage: InventorySection,
+			opt armor: InventorySection,
+			opt hotbar: InventorySection,
+			opt utility: InventorySection,
+			opt builder_material: InventorySection,
+			opt tools: InventorySection,
+			opt backpack: InventorySection,
+		}
+	}
 }

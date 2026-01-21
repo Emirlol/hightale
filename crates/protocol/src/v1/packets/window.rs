@@ -1,11 +1,13 @@
-use super::{
-	inventory::InventorySection,
-	ExtraResources,
-	SortType,
-	WindowAction,
-	WindowType,
+use crate::{
+	define_packet,
+	v1::{
+		inventory::InventorySection,
+		ExtraResources,
+		SortType,
+		WindowAction,
+		WindowType,
+	},
 };
-use crate::define_packet;
 
 define_packet! { CancelCraftingAction {} }
 define_packet! { ChangeBlockAction { down: bool } }

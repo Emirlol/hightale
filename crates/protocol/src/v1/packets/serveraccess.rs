@@ -1,7 +1,7 @@
-use super::HostAddress;
 use crate::{
 	define_enum,
 	define_packet,
+	v1::HostAddress,
 };
 
 define_enum! {
@@ -16,19 +16,19 @@ define_enum! {
 define_packet! { RequestServerAccess { access: Access, port: u16 } }
 
 define_packet! {
-   SetServerAccess {
-	   fixed {
-		   required access: Access,
-		   opt password: String
-	   }
-   }
+	SetServerAccess {
+		fixed {
+			required access: Access,
+			opt password: String
+		}
+	}
 }
 
 define_packet! {
-   UpdateServerAccess {
-	   fixed {
-		   required access: Access,
-		   opt hosts: Vec<HostAddress>
-	   }
-   }
+	UpdateServerAccess {
+		fixed {
+			required access: Access,
+			opt hosts: Vec<HostAddress>
+		}
+	}
 }

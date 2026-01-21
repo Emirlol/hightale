@@ -1,4 +1,4 @@
-#![allow(unused_variables, clippy::enum_variant_names)]
+#![allow(clippy::enum_variant_names)]
 
 use std::collections::HashMap;
 
@@ -6,10 +6,6 @@ use bytes::{
 	Buf,
 	Bytes,
 	BytesMut,
-};
-use entities::{
-	ChangeVelocityType,
-	VelocityConfig,
 };
 use ordered_float::OrderedFloat;
 use uuid::Uuid;
@@ -19,17 +15,34 @@ use crate::{
 		BitOptionVec,
 		FixedAscii,
 		HytaleCodec,
-		PacketContext,
 		PacketError,
 		PacketResult,
 		VarInt,
 	},
 	define_enum,
 	define_packet,
+	id_dispatch,
 	v1::{
+		Color,
+		ColorAlpha,
+		ColorLight,
+		InteractionCooldown,
+		InteractionRules,
+		RangeF,
+		RangeI,
+		RangeVector2f,
+		RangeVector3f,
 		buildertools::BuilderToolState,
-		camera::CameraShakeEffect,
 		interaction::InteractionType,
+		objects::{
+			DirectionF,
+			FloatRange,
+			PositionF,
+			Vector2f,
+			Vector2i,
+			Vector3f,
+			Vector3i,
+		},
 	},
 };
 
@@ -56,19 +69,11 @@ pub const MAX_SIZE: i32 = 4_096_000;
 define_packet! { HostAddress { port: u16, host: String } }
 
 define_packet! {
-   Asset {
-	   hash: FixedAscii<64>, // 64-char Hex String
-	   name: String,         // Filename (e.g. "models/player.json")
-   }
+	Asset {
+		hash: FixedAscii<64>, // 64-char Hex String
+		name: String,         // Filename (e.g. "models/player.json")
+	}
 }
-
-define_packet! { InstantData { seconds: i64, nanos: i32 } }
-
-define_packet! { Vector2f { x: f32, y: f32 } }
-
-define_packet! { Vector3f { x: f32, y: f32, z: f32 } }
-
-define_packet! { PositionF { x: f64, y: f64, z: f64 } }
 
 define_enum! {
 	pub enum PositionType {
@@ -76,8 +81,6 @@ define_enum! {
 		Custom = 1
 	}
 }
-
-define_packet! { DirectionF { yaw: f32, pitch: f32, roll: f32 } }
 
 define_enum! {
 	pub enum RotationType {
@@ -235,18 +238,18 @@ define_packet! {
 }
 
 define_packet! {
-   ItemWithAllMetadata {
-	   fixed {
-		   required quantity: i32,
-		   required durability: f64,
-		   required max_durability: f64,
-		   required override_dropped_item_animation: bool
-	   }
-	   variable {
-		   required item_id: String,
-		   opt metadata: String
-	   }
-   }
+	ItemWithAllMetadata {
+		fixed {
+			required quantity: i32,
+			required durability: f64,
+			required max_durability: f64,
+			required override_dropped_item_animation: bool
+		}
+		variable {
+			required item_id: String,
+			opt metadata: String
+		}
+	}
 }
 
 define_packet! {
@@ -272,33 +275,33 @@ define_enum!(
 );
 
 define_packet! {
-   BenchRequirement {
-	   fixed {
-		   required bench_type: BenchType,
-		   required required_tier_level: i32,
-	   }
-	   variable {
-		   opt id: String,
-		   opt categories: Vec<String>
-	   }
-   }
+	BenchRequirement {
+		fixed {
+			required bench_type: BenchType,
+			required required_tier_level: i32,
+		}
+		variable {
+			opt id: String,
+			opt categories: Vec<String>
+		}
+	}
 }
 
 define_packet! {
-   CraftingRecipe {
-	   fixed {
-		   required knowledge_required: bool,
-		   required time_seconds: f32,
-		   required required_memories_level: i32
-	   }
-	   variable {
-		   opt id: String,
-		   opt inputs: Vec<MaterialQuantity>,
-		   opt outputs: Vec<MaterialQuantity>,
-		   opt primary_output: MaterialQuantity,
-		   opt bench_requirement: Vec<BenchRequirement>,
-	   }
-   }
+	CraftingRecipe {
+		fixed {
+			required knowledge_required: bool,
+			required time_seconds: f32,
+			required required_memories_level: i32
+		}
+		variable {
+			opt id: String,
+			opt inputs: Vec<MaterialQuantity>,
+			opt outputs: Vec<MaterialQuantity>,
+			opt primary_output: MaterialQuantity,
+			opt bench_requirement: Vec<BenchRequirement>,
+		}
+	}
 }
 
 define_enum! {
@@ -386,27 +389,21 @@ define_enum! {
 }
 
 define_packet! {
-   Nameplate {
-	   fixed {
-		   opt text: String
-	   }
-   }
+	Nameplate {
+		fixed {
+			opt text: String
+		}
+	}
 }
 
 define_packet! {
-   CombatTextUpdate {
-	   fixed {
-		   required hit_angle_deg: f32,
-		   opt text: String
-	   }
-   }
+	CombatTextUpdate {
+		fixed {
+			required hit_angle_deg: f32,
+			opt text: String
+		}
+	}
 }
-
-define_packet! { RangeF { min: f32, max: f32 } }
-
-define_packet! { RangeI { min: i32, max: i32 } }
-
-define_packet! { RangeB { min: u8, max: u8 } }
 
 define_enum! {
 	pub enum CameraNode {
@@ -419,71 +416,72 @@ define_enum! {
 }
 
 define_packet! {
-   CameraAxis {
-	   fixed {
-		   opt angle_range: RangeF [pad=8],
-		   opt target_nodes: Vec<CameraNode>,
-	   }
-   }
+	CameraAxis {
+		fixed {
+			opt angle_range: RangeF [pad=8],
+			opt target_nodes: Vec<CameraNode>,
+		}
+	}
 }
 
 define_packet! {
-   CameraSettings {
-	   fixed {
-		   opt position_offset: Vector3f [pad=12],
-	   }
-	   variable {
-		   opt yaw: CameraAxis,
-		   opt pitch: CameraAxis,
-		   // No roll
-	   }
-   }
+	CameraSettings {
+		fixed {
+			opt position_offset: Vector3f [pad=12],
+		}
+		variable {
+			opt yaw: CameraAxis,
+			opt pitch: CameraAxis,
+			// No roll
+		}
+	}
 }
 
 define_packet! {
-   Animation {
-	   fixed {
-		   required speed: f32,
-		   required blending_duration: f32,
-		   required looping: bool,
-		   required weight: f32,
-		   required sound_event_indexx: i32,
-		   required passive_loop_count: i32
-	   }
-	   variable {
-		   opt name: String,
-		   opt footstep_invervals_count: Vec<i32>
-	   }
-   }
+	Animation {
+		fixed {
+			required speed: f32,
+			required blending_duration: f32,
+			required looping: bool,
+			required weight: f32,
+			required sound_event_indexx: i32,
+			required passive_loop_count: i32
+		}
+		variable {
+			opt name: String,
+			opt footstep_invervals_count: Vec<i32>
+		}
+	}
 }
 
 define_packet! {
-   AnimationSet {
-	   fixed {
-		   opt next_animation_delay: RangeF [pad=8],
-	   }
-	   variable {
-		   opt id: String,
-		   opt animations: Vec<Animation>,
-	   }
-   }
+	AnimationSet {
+		fixed {
+			opt next_animation_delay: RangeF [pad=8],
+		}
+		variable {
+			opt id: String,
+			opt animations: Vec<Animation>,
+		}
+	}
 }
 
 define_packet! {
-   ModelAttachment {
-	   variable {
-		   opt model: String,
-		   opt texture: String,
-		   opt gradient_set: String,
-		   opt gradient_id: String
-	   }
-   }
+	ModelAttachment {
+		variable {
+			opt model: String,
+			opt texture: String,
+			opt gradient_set: String,
+			opt gradient_id: String
+		}
+	}
 }
 
 define_packet! { Hitbox {
 	min_pos: Vector3f,
 	max_pos: Vector3f,
 } }
+
 define_enum! {
 	pub enum EntityPart {
 		// This is supposed to be Self = 0 but that's a rust keyword, it can't even be used as r#Self.
@@ -494,52 +492,44 @@ define_enum! {
 	}
 }
 
-define_packet! { Color { red: u8, green: u8, blue: u8 } }
-define_packet! { ColorAlpha { alpha: u8, red: u8, green: u8, blue: u8 } }
+define_packet! {
+	ModelParticle {
+		fixed {
+			required scale: f32,
+			opt(1) color: Color [pad=3],
+			required target_entity_part: EntityPart,
+			opt(3) position_offset: Vector3f [pad=12],
+			opt(4) rotation_offset: DirectionF [pad=12],
+			required detached_from_model: bool,
+		}
+		variable {
+			opt(0) system_id: String,
+			opt(2) target_node_name: String
+		}
+	}
+}
+define_packet! {
+	ModelTrail {
+		fixed {
+			required target_entity_part: EntityPart,
+			opt(2) position_offset: Vector3f [pad=12],
+			opt(3) rotation_offset: DirectionF [pad=12],
+			required fixed_rotation: bool,
+		}
+		variable {
+			opt(0) trail_id: String,
+			opt(1) target_node_name: String
+		}
+	}
+}
 
 define_packet! {
-   ModelParticle {
-	   fixed {
-		   required scale: f32,
-		   opt(1) color: Color [pad=3],
-		   required target_entity_part: EntityPart,
-		   opt(3) position_offset: Vector3f [pad=12],
-		   opt(4) rotation_offset: DirectionF [pad=12],
-		   required detached_from_model: bool,
-	   }
-	   variable {
-		   opt(0) system_id: String,
-		   opt(2) target_node_name: String
-	   }
-   }
-}
-define_packet! {
-   ModelTrail {
-	   fixed {
-		   required target_entity_part: EntityPart,
-		   opt(2) position_offset: Vector3f [pad=12],
-		   opt(3) rotation_offset: DirectionF [pad=12],
-		   required fixed_rotation: bool,
-	   }
-	   variable {
-		   opt(0) trail_id: String,
-		   opt(1) target_node_name: String
-	   }
-   }
-}
-define_packet! { ColorLight {
-	radius: u8,
-	red: u8,
-	green: u8,
-	blue: u8,
-} }
-define_packet! {
-   DetailBox {
-	   fixed {
-		   opt offset: Vector3f [pad=12],
-		   opt r#box: Hitbox // Box is a keyword in rust
-	   }
-   }
+	DetailBox {
+		fixed {
+			opt offset: Vector3f [pad=12],
+			opt r#box: Hitbox // Box is a keyword in rust
+		}
+	}
 }
 define_enum! {
 	pub enum Phobia {
@@ -549,41 +539,41 @@ define_enum! {
 }
 
 define_packet! {
-   Model {
-	   mask_size: 2,
-	   fixed {
-		   required scale: f32,
-		   required eye_height: f32,
-		   required crouch_offset: f32,
-		   opt(8) hitbox: Hitbox [pad=24],
-		   opt(11) light: ColorLight [pad=4],
-		   required phobia: Phobia,
-	   }
-	   variable {
-		   opt(0) asset_id: String,
-		   opt(1) path: String,
-		   opt(2) texture: String,
-		   opt(3) gradient_set: String,
-		   opt(4) gradient_id: String,
-		   opt(5) camera: CameraSettings,
-		   opt(6) animation_sets: HashMap<String, AnimationSet>,
-		   opt(7) attachments: Vec<ModelAttachment>,
+	Model {
+		mask_size: 2,
+		fixed {
+			required scale: f32,
+			required eye_height: f32,
+			required crouch_offset: f32,
+			opt(8) hitbox: Hitbox [pad=24],
+			opt(11) light: ColorLight [pad=4],
+			required phobia: Phobia,
+		}
+		variable {
+			opt(0) asset_id: String,
+			opt(1) path: String,
+			opt(2) texture: String,
+			opt(3) gradient_set: String,
+			opt(4) gradient_id: String,
+			opt(5) camera: CameraSettings,
+			opt(6) animation_sets: HashMap<String, AnimationSet>,
+			opt(7) attachments: Vec<ModelAttachment>,
 
-		   opt(9) particles: Vec<ModelParticle>,
-		   opt(10) trails: Vec<ModelTrail>,
-		   opt(12) detail_boxes: HashMap<String, Vec<DetailBox>>,
-		   opt(13) phobia_model: Box<Model>,
-	   }
-   }
+			opt(9) particles: Vec<ModelParticle>,
+			opt(10) trails: Vec<ModelTrail>,
+			opt(12) detail_boxes: HashMap<String, Vec<DetailBox>>,
+			opt(13) phobia_model: Box<Model>,
+		}
+	}
 }
 define_packet! {
-   Equipment {
-	   variable {
-		   opt armor_ids: Vec<String>,
-		   opt right_hand_item_id: String,
-		   opt left_hand_item_id: String,
-	   }
-   }
+	Equipment {
+		variable {
+			opt armor_ids: Vec<String>,
+			opt right_hand_item_id: String,
+			opt left_hand_item_id: String,
+		}
+	}
 }
 define_enum! {
 	pub enum EntityStatOp {
@@ -619,27 +609,27 @@ define_packet! { Modifier {
 	amount: f32,
 } }
 define_packet! {
-   EntityStatUpdate {
-	   fixed {
-		   required op: EntityStatOp,
-		   required predictable: bool,
-		   required value: f32,
-		   opt(2) modifier: Modifier [pad=6]
-	   }
-	   variable {
-		   opt modifiers: HashMap<String, Modifier>,
-		   opt modifier_key: String
-	   }
-   }
+	EntityStatUpdate {
+		fixed {
+			required op: EntityStatOp,
+			required predictable: bool,
+			required value: f32,
+			opt(2) modifier: Modifier [pad=6]
+		}
+		variable {
+			opt modifiers: HashMap<String, Modifier>,
+			opt modifier_key: String
+		}
+	}
 }
 define_packet! {
-   ModelTransform {
-	   fixed {
-		   opt position: PositionF [pad=24],
-		   opt body_orientation: DirectionF [pad=12],
-		   opt look_orientation: DirectionF [pad=12],
-	   }
-   }
+	ModelTransform {
+		fixed {
+			opt position: PositionF [pad=24],
+			opt body_orientation: DirectionF [pad=12],
+			opt look_orientation: DirectionF [pad=12],
+		}
+	}
 }
 define_packet! { MovementStates {
 	idle: bool,
@@ -673,16 +663,16 @@ define_enum! {
 }
 
 define_packet! {
-   EntityEffectUpdate {
-	   fixed {
-		   required effect_op: EffectOp,
-		   required id: i32,
-		   required remaining_time: f32,
-		   required infinite: bool,
-		   required debuff: bool,
-		   opt status_effect_icon: String
-	   }
-   }
+	EntityEffectUpdate {
+		fixed {
+			required effect_op: EffectOp,
+			required id: i32,
+			required remaining_time: f32,
+			required infinite: bool,
+			required debuff: bool,
+			opt status_effect_icon: String
+		}
+	}
 }
 define_enum!(
 	pub enum MountController {
@@ -699,75 +689,75 @@ define_enum! {
 }
 
 define_packet! {
-   BlockMount {
-	   fixed {
-		   required mount_type: BlockMountType,
-		   opt position: Vector3f [pad=12],
-		   opt orientation: Vector3f [pad=12],
-		   required block_type_id: i32,
-	   }
-   }
+	BlockMount {
+		fixed {
+			required mount_type: BlockMountType,
+			opt position: Vector3f [pad=12],
+			opt orientation: Vector3f [pad=12],
+			required block_type_id: i32,
+		}
+	}
 }
 define_packet! {
-   MountedUpdate {
-	   fixed {
-		   required mounted_to_entity: i32,
-		   opt attachment_offset: Vector3f [pad=12],
-		   required mount_controller: MountController,
-		   opt block: BlockMount [pad=30],
-	   }
-   }
+	MountedUpdate {
+		fixed {
+			required mounted_to_entity: i32,
+			opt attachment_offset: Vector3f [pad=12],
+			required mount_controller: MountController,
+			opt block: BlockMount [pad=30],
+		}
+	}
 }
 define_packet! {
-   ComponentUpdate {
-	   mask_size: 3,
-	   fixed {
-		   required update_type: ComponentUpdateType,
-		   required block_id: i32,
-		   required entity_scale: f32,
-		   opt(8) transform: ModelTransform [pad=49],
-		   opt(9) movement_states: MovementStates [pad=22],
-		   opt(12) dynamic_light: ColorLight [pad=4],
-		   required hitbox_collision_config_index: i32,
-		   required repulsion_config_index: i32,
-		   required prediction_id: Uuid,
-		   opt(15) mounted: MountedUpdate [pad=48],
-	   }
-	   variable {
-		   opt(0) nameplate: Nameplate,
-		   opt(1) entity_ui_components: Vec<i32>,
-		   opt(2) combat_text_update: CombatTextUpdate,
-		   opt(3) model: Model,
-		   opt(4) skin: setup::PlayerSkin,
-		   opt(5) item: ItemWithAllMetadata,
-		   opt(6) equipment: Equipment,
-		   opt(7) entity_stat_updates: HashMap<i32, Vec<EntityStatUpdate>>,
-		   opt(10) entity_effect_updates: Vec<EntityEffectUpdate>,
-		   opt(11) interactions: HashMap<InteractionType, i32>,
-		   opt(13) sound_event_ids: Vec<i32>,
-		   opt(14) interaction_hint: String,
-		   opt(16) active_animations: BitOptionVec<String>,
-	   }
-   }
+	ComponentUpdate {
+		mask_size: 3,
+		fixed {
+			required update_type: ComponentUpdateType,
+			required block_id: i32,
+			required entity_scale: f32,
+			opt(8) transform: ModelTransform [pad=49],
+			opt(9) movement_states: MovementStates [pad=22],
+			opt(12) dynamic_light: ColorLight [pad=4],
+			required hitbox_collision_config_index: i32,
+			required repulsion_config_index: i32,
+			required prediction_id: Uuid,
+			opt(15) mounted: MountedUpdate [pad=48],
+		}
+		variable {
+			opt(0) nameplate: Nameplate,
+			opt(1) entity_ui_components: Vec<i32>,
+			opt(2) combat_text_update: CombatTextUpdate,
+			opt(3) model: Model,
+			opt(4) skin: setup::PlayerSkin,
+			opt(5) item: ItemWithAllMetadata,
+			opt(6) equipment: Equipment,
+			opt(7) entity_stat_updates: HashMap<i32, Vec<EntityStatUpdate>>,
+			opt(10) entity_effect_updates: Vec<EntityEffectUpdate>,
+			opt(11) interactions: HashMap<InteractionType, i32>,
+			opt(13) sound_event_ids: Vec<i32>,
+			opt(14) interaction_hint: String,
+			opt(16) active_animations: BitOptionVec<String>,
+		}
+	}
 }
 define_packet! {
-   EntityUpdate {
-	   fixed {
-		   required network_id: i32
-	   }
-	   variable {
-		   opt removed: Vec<ComponentUpdateType>,
-		   opt updates: Vec<ComponentUpdate>
-	   }
-   }
+	EntityUpdate {
+		fixed {
+			required network_id: i32
+		}
+		variable {
+			opt removed: Vec<ComponentUpdateType>,
+			opt updates: Vec<ComponentUpdate>
+		}
+	}
 }
 define_packet! {
-   ItemQuantity {
-	   fixed {
-		   required quantity: i32,
-		   opt item_id: String,
-	   }
-   }
+	ItemQuantity {
+		fixed {
+			required quantity: i32,
+			opt item_id: String,
+		}
+	}
 }
 define_packet! { HalfFloatPosition { x: i16, y: i16, z: i16 } }
 
@@ -776,12 +766,12 @@ define_packet! { TeleportAck { teleport_id: u8 } }
 define_packet! { Vector3d { x: f64, y: f64, z: f64 } }
 
 define_packet! {
-   DamageCause {
-	   variable {
-		   opt id: String,
-		   opt damage_text_color: String
-	   }
-   }
+	DamageCause {
+		variable {
+			opt id: String,
+			opt damage_text_color: String
+		}
+	}
 }
 define_enum! {
 	pub enum DebugShape {
@@ -817,31 +807,21 @@ define_packet! { MouseButtonEvent {
 } }
 
 define_packet! {
-	Vector3i {
-		x: i32,
-		y: i32,
-		z: i32,
+	MouseMotionEvent {
+		fixed {
+			opt relative_motion: Vector2i [pad=8],
+			opt mouse_button_type: Vec<MouseButtonType>,
+		}
 	}
 }
-
-define_packet! { Vector2i { x: i32, y: i32 } }
-
 define_packet! {
-   MouseMotionEvent {
-	   fixed {
-		   opt relative_motion: Vector2i [pad=8],
-		   opt mouse_button_type: Vec<MouseButtonType>,
-	   }
-   }
-}
-define_packet! {
-   WorldInteraction {
-	   fixed {
-		   required entity_id: i32,
-		   opt block_position: Vector3i [pad=12],
-		   opt block_rotation: BlockRotation [pad=3],
-	   }
-   }
+	WorldInteraction {
+		fixed {
+			required entity_id: i32,
+			opt block_position: Vector3i [pad=12],
+			opt block_rotation: BlockRotation [pad=3],
+		}
+	}
 }
 define_enum! {
 	pub enum GameMode {
@@ -939,83 +919,24 @@ define_enum! {
 }
 
 define_packet! {
-   ExtraResources {
-	   fixed {
-		   opt resources: Vec<ItemQuantity>
-	   }
-   }
-}
-// Similar to ParamValue
-#[derive(Debug, Clone)]
-pub enum WindowAction {
-	CraftRecipeAction(window::CraftRecipeAction),
-	TierUpgradeAction(window::TierUpgradeAction),
-	SelectSlotAction(window::SelectSlotAction),
-	ChangeBlockAction(window::ChangeBlockAction),
-	SetActiveAction(window::SetActiveAction),
-	CraftItemAction(window::CraftItemAction),
-	UpdateCategoryAction(window::UpdateCategoryAction),
-	CancelCraftingAction(window::CancelCraftingAction),
-	SortItemsAction(window::SortItemsAction),
-}
-
-impl HytaleCodec for WindowAction {
-	fn encode(&self, buf: &mut BytesMut) {
-		match self {
-			WindowAction::CraftRecipeAction(v) => {
-				VarInt(0).encode(buf);
-				v.encode(buf);
-			}
-			WindowAction::TierUpgradeAction(v) => {
-				VarInt(1).encode(buf);
-				v.encode(buf);
-			}
-			WindowAction::SelectSlotAction(v) => {
-				VarInt(2).encode(buf);
-				v.encode(buf);
-			}
-			WindowAction::ChangeBlockAction(v) => {
-				VarInt(3).encode(buf);
-				v.encode(buf);
-			}
-			WindowAction::SetActiveAction(v) => {
-				VarInt(4).encode(buf);
-				v.encode(buf);
-			}
-			WindowAction::CraftItemAction(v) => {
-				VarInt(5).encode(buf);
-				v.encode(buf);
-			}
-			WindowAction::UpdateCategoryAction(v) => {
-				VarInt(6).encode(buf);
-				v.encode(buf);
-			}
-			WindowAction::CancelCraftingAction(v) => {
-				VarInt(7).encode(buf);
-				v.encode(buf);
-			}
-			WindowAction::SortItemsAction(v) => {
-				VarInt(8).encode(buf);
-				v.encode(buf);
-			}
+	ExtraResources {
+		fixed {
+			opt resources: Vec<ItemQuantity>
 		}
 	}
+}
 
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		let type_id = VarInt::decode(buf)?.0;
-
-		match type_id {
-			0 => Ok(WindowAction::CraftRecipeAction(window::CraftRecipeAction::decode(buf)?)),
-			1 => Ok(WindowAction::TierUpgradeAction(window::TierUpgradeAction::decode(buf)?)),
-			2 => Ok(WindowAction::SelectSlotAction(window::SelectSlotAction::decode(buf)?)),
-			3 => Ok(WindowAction::ChangeBlockAction(window::ChangeBlockAction::decode(buf)?)),
-			4 => Ok(WindowAction::SetActiveAction(window::SetActiveAction::decode(buf)?)),
-			5 => Ok(WindowAction::CraftItemAction(window::CraftItemAction::decode(buf)?)),
-			6 => Ok(WindowAction::UpdateCategoryAction(window::UpdateCategoryAction::decode(buf)?)),
-			7 => Ok(WindowAction::CancelCraftingAction(window::CancelCraftingAction::decode(buf)?)),
-			8 => Ok(WindowAction::SortItemsAction(window::SortItemsAction::decode(buf)?)),
-			_ => Err(PacketError::InvalidEnumVariant(type_id as u8)),
-		}
+id_dispatch! {
+	WindowAction from window {
+		0 => CraftRecipeAction,
+		1 => TierUpgradeAction,
+		2 => SelectSlotAction,
+		3 => ChangeBlockAction,
+		4 => SetActiveAction,
+		5 => CraftItemAction,
+		6 => UpdateCategoryAction,
+		7 => CancelCraftingAction,
+		8 => SortItemsAction,
 	}
 }
 
@@ -1044,158 +965,40 @@ define_enum! {
 }
 
 define_packet! {
-   Transform {
-	   fixed {
-		   opt position: PositionF [pad=24],
-		   opt orientation: DirectionF [pad=12],
-	   }
-   }
+	Transform {
+		fixed {
+			opt position: PositionF [pad=24],
+			opt orientation: DirectionF [pad=12],
+		}
+	}
 }
 define_packet! {
-   Objective {
-	   fixed {
-		   required objective_uuid: Uuid,
-	   }
-	   variable {
-		   opt objective_title_key: String,
-		   opt objective_description_key: String,
-		   opt objective_line_id: String,
-		   opt tasks: Vec<ObjectiveTask>
-	   }
-   }
+	Objective {
+		fixed {
+			required objective_uuid: Uuid,
+		}
+		variable {
+			opt objective_title_key: String,
+			opt objective_description_key: String,
+			opt objective_line_id: String,
+			opt tasks: Vec<ObjectiveTask>
+		}
+	}
 }
 define_packet! {
-   ObjectiveTask {
-	   fixed {
-		   required current_completion: i32,
-		   required completion_needed: i32,
-		   opt task_description_key: String
-	   }
-   }
+	ObjectiveTask {
+		fixed {
+			required current_completion: i32,
+			required completion_needed: i32,
+			opt task_description_key: String
+		}
+	}
 }
 define_enum! {
 	pub enum UpdateType {
 		Init = 0,
 		AddOrUpdate = 1,
 		Remove = 2,
-	}
-}
-
-define_packet! {
-	AmbienceFXBlockSoundSet {
-		fixed {
-			required block_sound_set_index: i32,
-			opt percent: RangeF,
-		}
-	}
-}
-
-define_packet! {
-	AmbienceFXConditions {
-		mask_size: 2
-		fixed {
-			required never: bool,
-			required environment_tag_pattern_index: i32,
-			required weather_tag_pattern_index: i32,
-			opt(4) altitude: RangeI [pad=8],
-			opt(5) walls: RangeB [pad=2],
-			required roof: bool,
-			required roof_material_tag_pattern_index: i32,
-			required floor: bool,
-			opt(6) sun_light_level: RangeB [pad=2],
-			opt(7) torch_light_level: RangeB [pad=2],
-			opt(8) global_light_level: RangeB [pad=2],
-			opt(9) day_time: RangeF [pad=8],
-		}
-		variable {
-			opt(0) environment_indices: Vec<i32>,
-			opt(1) weather_indices: Vec<i32>,
-			opt(2) fluid_fx_indices: Vec<i32>,
-			opt(3) surrounding_block_sound_sets: Vec<AmbienceFXBlockSoundSet>
-		}
-	}
-}
-
-define_enum! {
-	pub enum AmbienceFXSoundPlay3D {
-		Random = 0,
-		LocationName = 1,
-		No = 2
-	}
-}
-
-define_enum! {
-	pub enum AmbienceFXAltitude {
-		Normal = 0,
-		Lowest = 1,
-		Highest = 2,
-		Random = 3
-	}
-}
-
-define_packet! {
-	AmbienceFXSound {
-		fixed {
-			required sound_event_index: i32,
-			required play_3d: AmbienceFXSoundPlay3D,
-			required block_sound_set_index: i32,
-			required altitude: AmbienceFXAltitude,
-			opt frequency: RangeF [pad=8],
-			opt volume: RangeI [pad=8],
-		}
-	}
-}
-
-define_packet! {
-	AmbienceFXMusic {
-		fixed {
-			required volume: f32,
-			opt tracks: Vec<String>,
-		}
-	}
-}
-
-define_enum! {
-	pub enum AmbienceTransitionSpeed {
-		Default = 0,
-		Fast = 1,
-		Instant = 2
-	}
-}
-
-define_packet! {
-	AmbienceFXAmbientBed {
-		fixed {
-			required volume: f32,
-			required transition_speed: AmbienceTransitionSpeed,
-			opt track: String,
-		}
-	}
-}
-
-define_packet! {
-	AmbienceFXSoundEffect {
-		reverb_effect_index: i32,
-		equalizer_effect_index: i32,
-		is_instant: bool,
-	}
-}
-
-define_packet! {
-	AmbienceFX {
-		fixed {
-			opt(5) sound_effect: AmbienceFXSoundEffect [pad=9],
-			required priority: i32,
-			required audio_category_index: i32,
-		}
-		variable {
-			opt(0) id: String,
-			opt(1) conditions: AmbienceFXConditions,
-			opt(2) sounds: Vec<AmbienceFXSound>,
-			opt(3) music: AmbienceFXMusic,
-			opt(4) ambient_bed: AmbienceFXAmbientBed,
-			opt(6) blocked_ambience_fx_indices: Vec<i32>,
-		}
 	}
 }
 
@@ -1245,14 +1048,6 @@ define_packet! {
 			opt name: String,
 			opt blocks: Vec<i32>
 		}
-	}
-}
-
-define_packet! {
-	// This is the same as RangeF. Don't ask why. I don't have the answers.
-	FloatRange {
-		inclusive_min: f32,
-		inclusive_max: f32
 	}
 }
 
@@ -1979,15 +1774,6 @@ define_enum! {
 	}
 }
 
-define_packet! {
-	RangeVector2f {
-		fixed {
-			opt x: RangeF [pad=8],
-			opt y: RangeF [pad=8],
-		}
-	}
-}
-
 define_enum! {
 	pub enum CombatTextEntityUIAnimationEventType {
 		Scale = 0,
@@ -2174,1396 +1960,6 @@ define_packet! {
 		collision_type: CollisionType,
 		soft_collision_offset_ratio: f32
 	}
-}
-
-define_enum! {
-	pub enum WaitForDataFrom {
-		Client = 0,
-		Server = 1,
-		None = 2,
-	}
-}
-
-define_packet! {
-	InteractionEffects {
-		fixed {
-			required world_sound_event_index: i32,
-			required local_sound_event_index: i32,
-			required wait_for_animation_to_finish: bool,
-			required clear_animation_on_finish: bool,
-			required clear_sound_event_on_finish: bool,
-			opt(5) camera_shake: CameraShakeEffect [pad=9],
-			opt(6) movement_effects: MovementEffects [pad=7],
-			required start_delay: f32,
-		}
-		variable {
-			opt(0) particles: Vec<ModelParticle>,
-			opt(1) first_person_particles: Vec<ModelParticle>,
-			opt(2) trails: Vec<ModelTrail>,
-			opt(3) item_player_animations_id: String,
-			opt(4) item_animation_id: String,
-		}
-	}
-}
-
-define_packet! {
-	InteractionSettings {
-		allow_skip_on_click: bool
-	}
-}
-
-define_packet! {
-	InteractionRules {
-		fixed {
-			required blocked_by_bypass_index: i32,
-			required blocking_bypass_index: i32,
-			required interrupted_by_bypass_index: i32,
-			required interrupting_bypass_index: i32,
-		}
-		variable {
-			opt blocked_by: Vec<InteractionType>,
-			opt blocking: Vec<InteractionType>,
-			opt interrupted_by: Vec<InteractionType>,
-			opt interrupting: Vec<InteractionType>,
-		}
-	}
-}
-
-define_packet! {
-	InteractionCamera {
-		fixed {
-			required time: f32,
-			opt position: Vector3f [pad=12],
-			opt rotation: DirectionF [pad=12],
-		}
-	}
-}
-
-define_packet! {
-	InteractionCameraSettings {
-		variable {
-			opt first_person: Vec<InteractionCamera>,
-			opt third_person: Vec<InteractionCamera>,
-		}
-	}
-}
-
-define_packet! {
-	SimpleBlockInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required use_latest_target: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	SimpleInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	PlaceBlockInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required block_id: i32,
-			required remove_item_in_hand: bool,
-			required allow_drag_placement: bool
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	BreakBlockInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required use_latest_target: bool,
-			required harvest: bool
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	PickBlockInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required use_latest_target: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	UseBlockInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required use_latest_target: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	UseEntityInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	BuilderToolInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	ModifyInventoryInteraction {
-		mask_size: 2
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			opt(5) required_game_mode: GameMode,
-			required adjust_held_item_quantity: i32,
-			required adjust_held_item_durability: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(6) item_to_remove: ItemWithAllMetadata,
-			opt(7) item_to_add: ItemWithAllMetadata,
-			opt(8) broken_item: String
-		}
-	}
-}
-
-define_packet! {
-	ChargingDelay {
-		min_delay: f32,
-		max_delay: f32,
-		max_total_delay: f32,
-		min_health: f32,
-		max_health: f32
-	}
-}
-
-define_packet! {
-	ChargingInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required allow_indefinite_hold: bool,
-			required display_progress: bool,
-			required cancel_on_other_click: bool,
-			required fail_on_damage: bool,
-			required mouse_sensitivity_adjustment_target: f32,
-			required mouse_sensitivity_adjustment_duration: f32,
-			opt(7) charging_delay: ChargingDelay
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
-			opt(6) forks: HashMap<InteractionType, i32>,
-		}
-	}
-}
-
-define_packet! {
-	AngledWielding {
-		angle_rad: f32,
-		angle_distance_rad: f32,
-		has_modifiers: bool
-	}
-}
-
-define_packet! {
-	WorldParticle {
-		fixed {
-			required scale: f32,
-			opt(1) color: Color [pad=3],
-			opt(2) position_offset: Vector3f [pad=12],
-			opt(3) rotation_offset: DirectionF [pad=12],
-			opt(0) system_id: String
-		}
-	}
-}
-
-define_packet! {
-	DamageEffects {
-		fixed {
-			required sound_event_index: i32
-		}
-		variable {
-			opt model_particles: Vec<ModelParticle>,
-			opt world_particles: Vec<WorldParticle>
-		}
-	}
-}
-
-define_packet! {
-	WieldingInteraction {
-		mask_size: 2
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required allow_indefinite_hold: bool,
-			required display_progress: bool,
-			required cancel_on_other_click: bool,
-			required fail_on_damage: bool,
-			required mouse_sensitivity_adjustment_target: f32,
-			required mouse_sensitivity_adjustment_duration: f32,
-			opt(7) charging_delay: ChargingDelay,
-			required has_modifiers: bool,
-			opt(8) angled_wielding: AngledWielding
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
-			opt(6) forks: HashMap<InteractionType, i32>,
-			opt(9) blocked_effects: DamageEffects
-		}
-	}
-}
-
-define_packet! {
-	ChainingInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required chaining_allowance: f32
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) chain_id: String,
-			opt(6) chaining_next: Vec<i32>,
-			opt(7) flags: HashMap<String, i32>
-		}
-	}
-}
-
-define_packet! {
-	ConditionInteraction {
-		mask_size: 2
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			opt(5) required_game_mode: GameMode,
-			opt(6) jumping: bool, // @Nullable Boolean be like
-			opt(7) swimming: bool,
-			opt(8) crouching: bool,
-			opt(9) running: bool,
-			opt(10) flying: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	StatsConditionInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required less_than: bool,
-			required lenient: bool,
-			required value_type: ValueType
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) costs: HashMap<i32, f32>
-		}
-	}
-}
-
-define_packet! {
-	BlockIdMatcher {
-		fixed {
-			required tag_index: i32
-		}
-		variable {
-			opt id: String,
-			opt state: String
-		}
-	}
-}
-
-define_packet! {
-	BlockMatcher {
-		fixed {
-			required face: BlockFace,
-			required static_face: bool,
-			opt block: BlockIdMatcher
-		}
-	}
-}
-
-define_packet! {
-	BlockConditionInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required use_latest_target: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) matchers: Vec<BlockMatcher>
-		}
-	}
-}
-
-define_packet! {
-	ReplaceInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required default_value: i32
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) variable: String
-		}
-	}
-}
-
-define_packet! {
-	ChangeBlockInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required use_latest_target: bool,
-			required world_sound_event_index: i32,
-			required require_not_broken: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) block_changes: HashMap<i32, i32>
-		}
-	}
-}
-
-define_packet! {
-	ChangeStateInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required use_latest_target: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) state_changes: HashMap<String, String>
-		}
-	}
-}
-
-define_packet! {
-	FirstClickInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required click: i32,
-			required held: i32
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	RefillContainerInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required use_latest_target: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) refill_fluiids: Vec<i32>
-		}
-	}
-}
-
-define_enum! {
-	pub enum FailOnType {
-		Neither = 0,
-		Entity = 1,
-		Block = 2,
-		Either = 3,
-	}
-}
-
-define_enum! {
-	pub enum EntityMatcherType {
-		Server = 0,
-		VulnerableMatcher = 1,
-		Player = 2,
-	}
-}
-
-define_packet! {
-	EntityMatcher {
-		entity_matcher_type: EntityMatcherType,
-		invert: bool
-	}
-}
-
-define_packet! {
-	HitEntity {
-		fixed {
-			opt matchers: Vec<EntityMatcher>
-		}
-	}
-}
-
-define_packet! {
-	SelectInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required ignore_owner: bool,
-			required hit_entity: i32,
-			required fail_on: FailOnType,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) hit_entity_rules: Vec<HitEntity>
-		}
-	}
-}
-
-define_packet! {
-	AngledDamage {
-		fixed {
-			required angle: f64,
-			required angle_distance: f64,
-			required next: i32,
-			opt damage_effects: DamageEffects
-		}
-	}
-}
-
-define_packet! {
-	TargetedDamage {
-		fixed {
-			required index: i32,
-			required next: i32,
-			opt damage_effects: DamageEffects
-		}
-	}
-}
-
-define_packet! {
-	EntityStatOnHit {
-		fixed {
-			required entity_stat_index: i32,
-			required amount: f32,
-			required multiplier_per_extra_entities_hit_count: f32,
-			opt multipliers_per_entities_hit: Vec<f32>
-		}
-	}
-}
-
-define_packet! {
-	DamageEntityInteraction {
-		mask_size: 2
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required blocked: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) damage_effects: DamageEffects,
-			opt(6) angled_damage: Vec<AngledDamage>,
-			opt(7) targeted_damage: HashMap<String, TargetedDamage>,
-			opt(8) entity_status_on_hit: Vec<EntityStatOnHit>
-		}
-	}
-}
-
-define_packet! {
-	RepeatInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required fork_interactions: i32,
-			required repeat: i32
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-define_packet! {
-	ParallelInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) next: Vec<i32>,
-		}
-	}
-}
-
-define_packet! {
-	ChangeActiveSlotInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required target_slot: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_enum! {
-	pub enum Match {
-		All = 0,
-		None = 1
-	}
-}
-
-define_enum! {
-	pub enum InteractionTarget {
-		User = 0,
-		Owner = 1,
-		Target = 2
-	}
-}
-
-define_packet! {
-	EffectConditionInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required r#match: Match,
-			required entity_target: InteractionTarget
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) entity_effects: Vec<i32>,
-		}
-	}
-}
-
-define_enum! {
-	pub enum RaycastMode {
-		FollowMotion = 0,
-		FollowLook = 1
-	}
-}
-
-define_packet! {
-	AppliedForce {
-		fixed {
-			opt direction: Vector3f [pad=12],
-			required adjust_vertical: bool,
-			required force: f32,
-		}
-	}
-}
-
-define_packet! {
-	ApplyForceInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			opt(5) velocity_config: VelocityConfig [pad=21],
-			required change_velocity_type: ChangeVelocityType,
-			required duration: f32,
-			required wait_for_ground: bool,
-			required wait_for_collision: bool,
-			required ground_check_delay: f32,
-			required collision_check_delay: f32,
-			required ground_next: i32,
-			required collision_next: i32,
-			required raycast_distance: f32,
-			required raycast_height_offset: f32,
-			required raycast_mode: RaycastMode,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) forces: Vec<AppliedForce>,
-		}
-	}
-}
-
-define_packet! {
-	ApplyEffectInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required effect_id: i32,
-			required entity_target: InteractionTarget
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	ClearEntityEffectInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required effect_id: i32,
-			required entity_target: InteractionTarget
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	SerialInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) serial_interactions: Vec<i32>,
-		}
-	}
-}
-
-define_enum! {
-	pub enum ChangeStatBehavior {
-		Add = 0,
-		Set = 1
-	}
-}
-
-define_packet! {
-	ChangeStatInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required entity_target: InteractionTarget,
-			required value_type: ValueType,
-			required change_stat_behavior: ChangeStatBehavior
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) stat_modifiers: HashMap<i32, f32>,
-		}
-	}
-}
-
-define_packet! {
-	MovementConditionInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required forward: i32,
-			required backward: i32,
-			required left: i32,
-			required right: i32,
-			required forward_left: i32,
-			required forward_right: i32,
-			required back_left: i32,
-			required back_right: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	ProjectileInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) config_id: String,
-		}
-	}
-}
-
-define_packet! {
-	RemoveEntityInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required entity_target: InteractionTarget,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	InteractionCooldown {
-		fixed {
-			required cooldown: f32,
-			required click_bypass: bool,
-			required skip_cooldown_reset: bool,
-			required interrupt_recharge: bool,
-		}
-		variable {
-			opt cooldown_id: String,
-			opt charge_times: Vec<f32>,
-		}
-	}
-}
-
-define_packet! {
-	ResetCooldownInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) cooldown: InteractionCooldown
-		}
-	}
-}
-
-define_packet! {
-	TriggerCooldownInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) cooldown: InteractionCooldown
-		}
-	}
-}
-
-define_packet! {
-	CooldownConditionInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) cooldown_id: String
-		}
-	}
-}
-
-define_packet! {
-	ChainFlagInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) chain_id: String,
-			opt(6) flag: String,
-		}
-	}
-}
-
-define_packet! {
-	IncrementCooldownInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required cooldown_increment_time: f32,
-			required cooldown_increment_charge: i32,
-			required cooldown_increment_charge_time: f32,
-			required cooldown_increment_interrupt: bool,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) cooldown_id: String
-		}
-	}
-}
-
-define_packet! {
-	CancelChainInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) chain_id: String
-		}
-	}
-}
-
-define_packet! {
-	DeployableConfig {
-		fixed {
-			required allow_place_on_walls: bool
-		}
-		variable {
-			opt model: Model,
-			opt model_preview: Model
-		}
-	}
-}
-
-define_packet! {
-	RunRootInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required root_interaction: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_enum! {
-	pub enum CameraPerspectiveType {
-		First = 0,
-		Third = 1
-	}
-}
-
-define_enum! {
-	pub enum CameraActionType {
-		ForcePerspective = 0,
-		Orbit = 1,
-		Transition = 2,
-	}
-}
-
-define_packet! {
-	CameraInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required camera_action: CameraActionType,
-			required camera_perspective: CameraPerspectiveType,
-			required camera_persist: bool,
-			required camera_interaction_time: f32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-define_packet! {
-	SpawnDeployableFromRaycastInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-			required max_distance: f32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			// DeployableConfig is too big due to the Models it containts, it causes the this enum variant's size to shoot up to over 1688 without boxing. With boxing it's lower than 200, which is what we want & makes clippy happy.
-			opt(5) deployable_config: Box<DeployableConfig>,
-			opt(6) costs: HashMap<i32, f32>,
-		}
-	}
-}
-
-define_packet! {
-	MemoriesConditionInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			// No next on this one
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) memories_next: HashMap<i32, i32>,
-		}
-	}
-}
-
-define_packet! {
-	ToggleGliderInteraction {
-		fixed {
-			required wait_for_data_from: WaitForDataFrom,
-			required horizontal_speed_multiplier: f32,
-			required run_time: f32,
-			required cancel_on_item_change: bool,
-			required next: i32,
-			required failed: i32,
-		}
-		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-		}
-	}
-}
-
-macro_rules! impl_interaction_packet {
-    ( $($id:literal => $name:ident),* $(,)? ) => {
-
-        #[derive(Clone, Debug)]
-        pub enum Interaction {
-            $(
-                $name($name),
-            )*
-        }
-
-        impl HytaleCodec for Interaction {
-            fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-                let type_id = VarInt::decode(buf)?.0;
-
-                match type_id {
-                    $(
-                        $id => Ok(Interaction::$name(
-                            $name::decode(buf).context(concat!("enum variant ", stringify!($name), " (", stringify!($id), ")"))?
-                        )),
-                    )*
-                    _ => Err(PacketError::InvalidEnumVariant(type_id as u8)),
-                }
-            }
-
-            fn encode(&self, buf: &mut BytesMut) {
-                match self {
-                    $(
-                        Interaction::$name(inner) => {
-                            VarInt($id).encode(buf);
-                            inner.encode(buf);
-                        }
-                    )*
-                }
-            }
-        }
-    };
-}
-
-impl_interaction_packet! {
-	0  => SimpleBlockInteraction,
-	1  => SimpleInteraction,
-	2  => PlaceBlockInteraction,
-	3  => BreakBlockInteraction,
-	4  => PickBlockInteraction,
-	5  => UseBlockInteraction,
-	6  => UseEntityInteraction,
-	7  => BuilderToolInteraction,
-	8  => ModifyInventoryInteraction,
-	9  => ChargingInteraction,
-	10 => WieldingInteraction,
-	11 => ChainingInteraction,
-	12 => ConditionInteraction,
-	13 => StatsConditionInteraction,
-	14 => BlockConditionInteraction,
-	15 => ReplaceInteraction,
-	16 => ChangeBlockInteraction,
-	17 => ChangeStateInteraction,
-	18 => FirstClickInteraction,
-	19 => RefillContainerInteraction,
-	20 => SelectInteraction,
-	21 => DamageEntityInteraction,
-	22 => RepeatInteraction,
-	23 => ParallelInteraction,
-	24 => ChangeActiveSlotInteraction,
-	25 => EffectConditionInteraction,
-	26 => ApplyForceInteraction,
-	27 => ApplyEffectInteraction,
-	28 => ClearEntityEffectInteraction,
-	29 => SerialInteraction,
-	30 => ChangeStatInteraction,
-	31 => MovementConditionInteraction,
-	32 => ProjectileInteraction,
-	33 => RemoveEntityInteraction,
-	34 => ResetCooldownInteraction,
-	35 => TriggerCooldownInteraction,
-	36 => CooldownConditionInteraction,
-	37 => ChainFlagInteraction,
-	38 => IncrementCooldownInteraction,
-	39 => CancelChainInteraction,
-	40 => RunRootInteraction,
-	41 => CameraInteraction,
-	42 => SpawnDeployableFromRaycastInteraction,
-	43 => MemoriesConditionInteraction,
-	44 => ToggleGliderInteraction,
 }
 
 define_packet! {
@@ -3821,8 +2217,6 @@ define_packet! {
 		fixed {
 			opt(1) particle_color: Color [pad=3],
 			required show_item_particles: bool,
-		}
-		variable {
 			opt(0) particle_system_id: String
 		}
 	}
@@ -4010,16 +2404,6 @@ define_enum! {
 	pub enum EmitShape {
 		Sphere = 0,
 		Cube = 1
-	}
-}
-
-define_packet! {
-	RangeVector3f {
-		fixed {
-			opt x: RangeF [pad=8],
-			opt y: RangeF [pad=8],
-			opt z: RangeF [pad=8],
-		}
 	}
 }
 
@@ -4656,7 +3040,6 @@ macro_rules! packet_enum {
             }
         }
 
-        // Helper to lookup compression BEFORE decoding (needed for reading frames)
         pub fn is_id_compressed(id: i32) -> bool {
             match id {
                  $(
@@ -4668,7 +3051,6 @@ macro_rules! packet_enum {
             }
         }
 
-        // Auto-impl From<Struct> for Packet
         $(
             impl From<$module::$st> for Packet {
                 fn from(p: $module::$st) -> Self {

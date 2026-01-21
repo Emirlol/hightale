@@ -4,6 +4,11 @@ use crate::{
 	define_enum,
 	define_packet,
 	v1::{
+		interaction::InteractionType,
+		interface::{
+			BlockChange,
+			FluidChange,
+		},
 		ColorLight,
 		ModelTransform,
 		RangeF,
@@ -11,11 +16,6 @@ use crate::{
 		Rotation,
 		Vector3f,
 		Vector3i,
-		interaction::InteractionType,
-		interface::{
-			BlockChange,
-			FluidChange,
-		},
 	},
 };
 
@@ -305,9 +305,7 @@ define_packet! {
 			required apply_transformation_to_selection_min_max: bool,
 			required is_exiting_transform_mode: bool,
 			opt(4) initial_paste_point_for_clipboard_paste: Vector3i [pad=12],
-		}
-		variable {
-			opt transformation_matrix: Vec<f32>
+			opt(0) transformation_matrix: Vec<f32>
 		}
 	}
 }

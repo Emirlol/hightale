@@ -1,9 +1,9 @@
 use bytes::Bytes;
 
-use super::Model;
 use crate::{
 	define_enum,
 	define_packet,
+	v1::Model,
 };
 
 define_packet! { RequestMachinimaActorModel {

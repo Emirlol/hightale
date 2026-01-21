@@ -1,18 +1,18 @@
 use bytes::Bytes;
 use uuid::Uuid;
 
-use super::{
-	BlockParticleEvent,
-	Color,
-	DirectionF,
-	InstantData,
-	PositionF,
-	SoundCategory,
-	Vector3i,
-};
 use crate::{
 	define_enum,
 	define_packet,
+	v1::{
+		BlockParticleEvent,
+		Color,
+		DirectionF,
+		InstantData,
+		PositionF,
+		SoundCategory,
+		Vector3i,
+	},
 };
 
 define_packet! { ClearEditorTimeOverride {} }
@@ -143,13 +143,13 @@ define_packet! { SleepMultiplayer {
 	}
 } }
 define_packet! {
-   SpawnBlockParticleSystem {
-	   fixed {
-		   required block_id: i32,
-		   required particle_type: BlockParticleEvent,
-		   opt position: PositionF [pad=24],
-	   }
-   }
+	SpawnBlockParticleSystem {
+		fixed {
+			required block_id: i32,
+			required particle_type: BlockParticleEvent,
+			opt position: PositionF [pad=24],
+		}
+	}
 }
 define_packet! { SpawnParticleSystem {
 	fixed {

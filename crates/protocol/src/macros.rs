@@ -85,10 +85,12 @@ macro_rules! define_packet {
         }
 
         impl $crate::codec::HytaleCodec for $name {
+            #[allow(unused_variables, unused_mut)]
             fn encode(&self, buf: &mut bytes::BytesMut) {
                 $( <$type as $crate::codec::HytaleCodec>::encode(&self.$field, buf); )*
             }
 
+            #[allow(unused_variables, unused_mut)]
             fn decode(buf: &mut impl bytes::Buf) -> $crate::codec::PacketResult<Self> {
                 #[allow(unused_imports)]
                 use $crate::codec::PacketContext;
@@ -157,8 +159,8 @@ macro_rules! define_packet {
         }
 
         impl $crate::codec::HytaleCodec for $name {
+            #[allow(unused_variables, unused_mut)]
             fn encode(&self, buf: &mut bytes::BytesMut) {
-                #[allow(unused_imports)]
                 use bytes::BufMut;
 
                 // Calculate mask size. Default 1 if not provided.
@@ -183,6 +185,8 @@ macro_rules! define_packet {
                 )*
 
                 // Write offsets placeholders
+                // NOTE: If there are any warnings about vec_init_then_push, double check the definition of the packet.
+                //       This only happens when the variable field size is 1, but packets usually don't use offsets when there's only 1 variable field.
                 let mut _offset_indices: Vec<usize> = vec![];
                 $(
                     _offset_indices.push(buf.len());
@@ -199,10 +203,10 @@ macro_rules! define_packet {
                 )*
             }
 
+            #[allow(unused_variables, unused_mut)]
             fn decode(buf: &mut impl bytes::Buf) -> $crate::codec::PacketResult<Self> {
                 #[allow(unused_imports)]
                 use bytes::Buf;
-                #[allow(unused_imports)]
                 use $crate::codec::PacketContext;
 
                 if !buf.has_remaining() { return Err($crate::codec::PacketError::Incomplete).context("the whole buf"); }
@@ -223,6 +227,8 @@ macro_rules! define_packet {
 
                 // Read offsets
                 let mut _offsets: Vec<i32> = vec![];
+                // NOTE: If there are any warnings about vec_init_then_push, double check the definition of the packet.
+                //       This only happens when the variable field size is 1, but packets usually don't use offsets when there's only 1 variable field.
                 $(
                     _offsets.push(buf.get_i32_le());
                     let _ = stringify!($var_field);
@@ -456,6 +462,95 @@ macro_rules! define_packet {
 
             if let Some(v) = &$self.$field {
                 $crate::codec::HytaleCodec::encode(v, $buf);
+            }
+        }
+    };
+}
+
+#[allow(clippy::crate_in_macro_def)]
+#[macro_export]
+macro_rules! id_dispatch {
+    (
+	    $(#[$outer:meta])*
+        $packet:ident from $pkg:ident {
+            $($id:literal => $name:ident),* $(,)?
+        }
+    ) => {
+        $(#[$outer])*
+        #[derive(Clone, Debug)]
+        pub enum $packet {
+            $(
+                $name($pkg::$name),
+            )*
+        }
+
+        impl crate::codec::HytaleCodec for $packet {
+            fn decode(buf: &mut impl bytes::Buf) -> crate::codec::PacketResult<Self> {
+                use crate::codec::PacketContext;
+                let type_id = crate::codec::VarInt::decode(buf)?.0;
+
+                match type_id {
+                    $(
+                        $id => Ok($packet::$name(
+                            $pkg::$name::decode(buf).context(concat!("enum variant ", stringify!($name), " (", stringify!($id), ")"))?
+                        )),
+                    )*
+                    _ => Err(crate::codec::PacketError::InvalidEnumVariant(type_id as u8)),
+                }
+            }
+
+            fn encode(&self, buf: &mut bytes::BytesMut) {
+                match self {
+                    $(
+                        $packet::$name(inner) => {
+                            crate::codec::VarInt($id).encode(buf);
+                            inner.encode(buf);
+                        }
+                    )*
+                }
+            }
+        }
+    };
+
+    // Without package source, defaults to current module
+    (
+	    $(#[$outer:meta])*
+        $packet:ident {
+            $($id:literal => $name:ident),* $(,)?
+        }
+    ) => {
+        $(#[$outer])*
+        #[derive(Clone, Debug)]
+        pub enum $packet {
+            $(
+                $name($name),
+            )*
+        }
+
+        impl crate::codec::HytaleCodec for $packet {
+            fn decode(buf: &mut impl bytes::Buf) -> crate::codec::PacketResult<Self> {
+                use crate::codec::PacketContext;
+                let type_id = crate::codec::VarInt::decode(buf)?.0;
+
+                match type_id {
+                    $(
+                        $id => Ok($packet::$name(
+                            $name::decode(buf).context(concat!("enum variant ", stringify!($name), " (", stringify!($id), ")"))?
+                        )),
+                    )*
+                    _ => Err(crate::codec::PacketError::InvalidEnumVariant(type_id as u8)),
+                }
+            }
+
+            fn encode(&self, buf: &mut bytes::BytesMut) {
+                match self {
+                    $(
+                        $packet::$name(inner) => {
+                            crate::codec::VarInt($id).encode(buf);
+                            inner.encode(buf);
+                        }
+                    )*
+                }
             }
         }
     };

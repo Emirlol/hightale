@@ -176,10 +176,10 @@ impl HytaleCodec for VarInt {
 	fn encode(&self, buf: &mut BytesMut) {
 		let mut x = self.0 as u32;
 		loop {
-			let mut temp = (x & 0x7F) as u8;
+			let mut temp = (x & 0b01111111) as u8;
 			x >>= 7;
 			if x != 0 {
-				temp |= 0x80;
+				temp |= 0b10000000; // Top bit indicates more bytes follow
 			}
 			buf.put_u8(temp);
 			if x == 0 {
@@ -196,13 +196,13 @@ impl HytaleCodec for VarInt {
 				return Err(PacketError::Incomplete);
 			}
 			let read = buf.get_u8();
-			let value = (read & 0x7F) as i32;
+			let value = (read & 0b01111111) as i32;
 			result |= value << (7 * num_read);
 			num_read += 1;
 			if num_read > 5 {
 				return Err(PacketError::InvalidVarInt);
 			}
-			if (read & 0x80) == 0 {
+			if (read & 0b10000000) == 0 { // Top bit not set, end of VarInt
 				break;
 			}
 		}

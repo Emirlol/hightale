@@ -10,6 +10,7 @@ use syn::{
 		ParseStream,
 	},
 	parse_quote,
+	Attribute,
 	Expr,
 	Ident,
 	ItemStruct,
@@ -51,6 +52,7 @@ mod paths {
 pub(crate) struct PacketDefinition {
 	name: Ident,
 	body: PacketBody,
+	attributes: Vec<Attribute>,
 }
 
 struct SequentialField {
@@ -243,7 +245,9 @@ impl Parse for PacketBody {
 
 impl Parse for PacketDefinition {
 	fn parse(input: ParseStream) -> syn::Result<Self> {
+		// #[...] attributes
 		// Name { ... }
+		let attributes = if input.peek(Token![#]) { input.call(Attribute::parse_outer)? } else { Vec::new() };
 		let name: Ident = input.parse()?;
 		let body: PacketBody = if input.peek(syn::token::Brace) {
 			let content;
@@ -258,7 +262,7 @@ impl Parse for PacketDefinition {
 			PacketBody::Unit
 		};
 
-		Ok(PacketDefinition { name, body })
+		Ok(PacketDefinition { name, body, attributes })
 	}
 }
 
@@ -299,12 +303,14 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 	let packet_context = paths::packet_context();
 	let packet_result = paths::packet_result();
 	let packet_error = paths::packet_error();
+	let name = &packet_def.name;
+	let attributes = &packet_def.attributes;
 
 	match packet_def.body {
 		PacketBody::Unit => {
-			let name = &packet_def.name;
 			quote! {
-				#[derive(Debug, Clone, Copy, Default, macros::FixedSize)]
+				#(#attributes)*
+				#[derive(Debug, Clone, Copy, Default, Hash, PartialEq, Eq, macros::FixedSize)]
 				pub struct #name;
 
 				impl #hytale_codec for #name {
@@ -317,12 +323,12 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 			}
 		}
 		PacketBody::Sequential(fields) => {
-			let name = &packet_def.name;
 			let types: Vec<_> = fields.iter().map(|f| &f.ty).collect();
 			let names: Vec<_> = fields.iter().map(|f| &f.name).collect();
 			let name_strs: Vec<_> = fields.iter().map(|f| f.name.to_string()).collect();
 			quote! {
 				#[derive(Debug, Clone, macros::FixedSize)]
+				#(#attributes)*
 				pub struct #name {
 					#(
 						pub #names: #types,
@@ -357,7 +363,6 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 			fixed_block,
 			variable_block,
 		} => {
-			let name = &packet_def.name;
 			let is_mask_required = fixed_block.iter().chain(variable_block.iter()).any(|f| f.kind != MaskedFieldKind::Required);
 
 			let calculated_mask_size = {
@@ -398,6 +403,7 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 			};
 
 			let struct_def: ItemStruct = parse_quote!(
+				#(#attributes)*
 				#[derive(Debug, Clone)]
 				pub struct #name {
 					#(pub #fixed_block,)*

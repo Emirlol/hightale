@@ -115,13 +115,13 @@ define_packet! {
 			required sort_type: SortType,
 		}
 		variable {
-			opt(1) storage: InventorySection,
-			opt(2) armor: InventorySection,
-			opt(4) hotbar: InventorySection,
-			opt(8) utility: InventorySection,
-			opt(16) builder_material: InventorySection,
-			opt(32) tools: InventorySection,
-			opt(64) backpack: InventorySection,
+			opt(1) storage: Box<InventorySection>,
+			opt(2) armor: Box<InventorySection>,
+			opt(4) hotbar: Box<InventorySection>,
+			opt(8) utility: Box<InventorySection>,
+			opt(16) builder_material: Box<InventorySection>,
+			opt(32) tools: Box<InventorySection>,
+			opt(64) backpack: Box<InventorySection>,
 		}
 	}
 }

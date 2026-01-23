@@ -239,8 +239,8 @@ define_enum! {
 define_packet! {
 	KillFeedMessage {
 		variable {
-			opt(1) killer: FormattedMessage,
-			opt(2) decedent: FormattedMessage,
+			opt(1) killer: Box<FormattedMessage>,
+			opt(2) decedent: Box<FormattedMessage>,
 			opt(4) icon: String
 		}
 	}
@@ -252,8 +252,8 @@ define_packet! {
 			required style: NotificationStyle,
 		}
 		variable {
-			opt(1) message: FormattedMessage,
-			opt(2) secondary_message: FormattedMessage,
+			opt(1) message: Box<FormattedMessage>,
+			opt(2) secondary_message: Box<FormattedMessage>,
 			opt(4) icon: String,
 			opt(8) item: ItemWithAllMetadata,
 		}
@@ -359,8 +359,8 @@ define_packet! {
 		}
 		variable {
 			opt(1) icon: String,
-			opt(2) primary_title: FormattedMessage,
-			opt(4) secondary_title: FormattedMessage,
+			opt(2) primary_title: Box<FormattedMessage>,
+			opt(4) secondary_title: Box<FormattedMessage>,
 		}
 	}
 }

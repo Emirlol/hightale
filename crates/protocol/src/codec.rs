@@ -4,7 +4,10 @@ use std::{
 		HashMap,
 	},
 	fmt,
-	fmt::Display,
+	fmt::{
+		Debug,
+		Display,
+	},
 	hash::Hash,
 	ops::Deref,
 	string::FromUtf8Error,
@@ -179,55 +182,15 @@ impl HytaleCodec for f32 {
 	}
 }
 
-impl HytaleCodec for i64 {
+impl HytaleCodec for i8 {
 	fn encode(&self, buf: &mut BytesMut) {
-		buf.put_i64_le(*self);
+		buf.put_i8(*self);
 	}
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		let remaining = buf.remaining();
-		if remaining < 8 {
-			return Err(PacketError::incomplete_bytes_exact(remaining, 8));
+		if !buf.has_remaining() {
+			return Err(PacketError::incomplete_bytes_exact(0, 1));
 		}
-		Ok(buf.get_i64_le())
-	}
-}
-
-impl HytaleCodec for u32 {
-	fn encode(&self, buf: &mut BytesMut) {
-		buf.put_u32_le(*self);
-	}
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		let remaining = buf.remaining();
-		if remaining < 4 {
-			return Err(PacketError::incomplete_bytes_exact(remaining, 4));
-		}
-		Ok(buf.get_u32_le())
-	}
-}
-
-impl HytaleCodec for i32 {
-	fn encode(&self, buf: &mut BytesMut) {
-		buf.put_i32_le(*self);
-	}
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		let remaining = buf.remaining();
-		if remaining < 4 {
-			return Err(PacketError::incomplete_bytes_exact(remaining, 4));
-		}
-		Ok(buf.get_i32_le())
-	}
-}
-
-impl HytaleCodec for u16 {
-	fn encode(&self, buf: &mut BytesMut) {
-		buf.put_u16_le(*self);
-	}
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		let remaining = buf.remaining();
-		if remaining < 2 {
-			return Err(PacketError::incomplete_bytes_exact(remaining, 2));
-		}
-		Ok(buf.get_u16_le())
+		Ok(buf.get_i8())
 	}
 }
 
@@ -244,6 +207,45 @@ impl HytaleCodec for i16 {
 	}
 }
 
+impl HytaleCodec for i32 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_i32_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let remaining = buf.remaining();
+		if remaining < 4 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 4));
+		}
+		Ok(buf.get_i32_le())
+	}
+}
+
+impl HytaleCodec for i64 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_i64_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let remaining = buf.remaining();
+		if remaining < 8 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 8));
+		}
+		Ok(buf.get_i64_le())
+	}
+}
+
+impl HytaleCodec for i128 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_i128_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let remaining = buf.remaining();
+		if remaining < 16 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 16));
+		}
+		Ok(buf.get_i128_le())
+	}
+}
+
 impl HytaleCodec for u8 {
 	fn encode(&self, buf: &mut BytesMut) {
 		buf.put_u8(*self);
@@ -256,7 +258,62 @@ impl HytaleCodec for u8 {
 	}
 }
 
-// Wrapper for VarInts (so we can distinguish i32 vs VarInt in macros)
+impl HytaleCodec for u16 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_u16_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let remaining = buf.remaining();
+		if remaining < 2 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 2));
+		}
+		Ok(buf.get_u16_le())
+	}
+}
+
+impl HytaleCodec for u32 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_u32_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let remaining = buf.remaining();
+		if remaining < 4 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 4));
+		}
+		Ok(buf.get_u32_le())
+	}
+}
+
+impl HytaleCodec for u64 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_u64_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let remaining = buf.remaining();
+		if remaining < 8 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 8));
+		}
+		Ok(buf.get_u64_le())
+	}
+}
+
+impl HytaleCodec for u128 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_u128_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let remaining = buf.remaining();
+		if remaining < 16 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 16));
+		}
+		Ok(buf.get_u128_le())
+	}
+}
+
+// isize and usize explicitly aren't implemented because their size is platform-dependent and aren't reliable for network protocols
+
+/// A variable-length integer encoding (VarInt) as used in Hytale protocol.
+/// Encodes integers in 7-bit chunks, with the top bit of each byte indicating if more bytes follow.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct VarInt(pub i32);
 
@@ -510,7 +567,7 @@ impl<T: HytaleCodec> HytaleCodec for Vec<T> {
 
 impl<K, V: HytaleCodec> HytaleCodec for HashMap<K, V>
 where
-	K: HytaleCodec + Eq + Hash + Display,
+	K: HytaleCodec + Eq + Hash + Debug,
 	V: HytaleCodec,
 {
 	fn encode(&self, buf: &mut BytesMut) {
@@ -535,7 +592,7 @@ where
 			let key = K::decode(buf)?;
 			let value = V::decode(buf)?;
 			match map.entry(key) {
-				Entry::Occupied(entry) => return Err(PacketError::DuplicateKey(entry.key().to_string())),
+				Entry::Occupied(entry) => return Err(PacketError::DuplicateKey(format!("{:?}", entry.key()))),
 				Entry::Vacant(entry) => {
 					entry.insert(value);
 				}

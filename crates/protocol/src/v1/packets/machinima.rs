@@ -24,7 +24,7 @@ define_enum! {
 }
 define_packet! { SetMachinimaActorModel {
 	variable {
-		opt(1) model: Model,
+		opt(1) model: Box<Model>,
 		opt(2) scene_name: String,
 		opt(4) actor_name: String
 	}

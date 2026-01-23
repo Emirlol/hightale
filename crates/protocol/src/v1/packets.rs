@@ -46,6 +46,7 @@ use crate::{
 	},
 };
 
+pub mod asseteditor;
 pub mod assets;
 pub mod auth;
 pub mod buildertools;
@@ -3115,6 +3116,34 @@ macro_rules! packet_enum {
                 }
             }
         )*
+
+	    #[cfg(test)]
+        mod __packet_size_report {
+            use super::*;
+
+            #[test]
+            fn print_packet_variant_sizes() {
+                let mut sizes: Vec<(&'static str, usize)> = vec![
+                    $(
+                        (
+                            stringify!($variant),
+                            core::mem::size_of::<$module::$st>(),
+                        ),
+                    )*
+                    ("Unknown(i32, Bytes)", core::mem::size_of::<(i32, Bytes)>()),
+                ];
+
+                // Biggest first
+                sizes.sort_by_key(|&(_, s)| core::cmp::Reverse(s));
+
+                eprintln!("Packet size: {} bytes", core::mem::size_of::<Packet>());
+                eprintln!("Packet alignment: {} bytes", core::mem::align_of::<Packet>());
+                eprintln!("--- variant payload sizes ---");
+                for (name, sz) in sizes {
+                    eprintln!("{:>32}: {:>6} bytes", name, sz);
+                }
+            }
+        }
     };
 }
 
@@ -3341,6 +3370,68 @@ packet_enum! {
 	292 => PlayInteractionFor(interaction::PlayInteractionFor),
 	293 => MountNPC(interaction::MountNPC),
 	294 => DisountNPC(interaction::DismountNPC),
+
+	// Asset Editor
+	300 => FailureReply(asseteditor::FailureReply),
+	301 => SuccessReply(asseteditor::SuccessReply),
+	302 => AssetEditorInitialize(asseteditor::AssetEditorInitialize),
+	303 => AssetEditorAuthorization(asseteditor::AssetEditorAuthorization),
+	304 => AssetEditorCapabilities(asseteditor::AssetEditorCapabilities),
+	305 => AssetEditorSetupSchemas(asseteditor::AssetEditorSetupSchemas) [compressed],
+	306 => AssetEditorSetupAssetTypes(asseteditor::AssetEditorSetupAssetTypes),
+	307 => AssetEditorCreateDirectory(asseteditor::AssetEditorCreateDirectory),
+	308 => AssetEditorDeleteDirectory(asseteditor::AssetEditorDeleteDirectory),
+	309 => AssetEditorRenameDirectory(asseteditor::AssetEditorRenameDirectory),
+	310 => AssetEditorFetchAsset(asseteditor::AssetEditorFetchAsset),
+	311 => AssetEditorFetchJsonAssetWithParents(asseteditor::AssetEditorFetchJsonAssetWithParents),
+	312 => AssetEditorFetchAssetReply(asseteditor::AssetEditorFetchAssetReply),
+	313 => AssetEditorFetchJsonAssetWithParentsReply(asseteditor::AssetEditorFetchJsonAssetWithParentsReply) [compressed],
+	314 => AssetEditorAssetPackSetup(asseteditor::AssetEditorAssetPackSetup),
+	315 => AssetEditorUpdateAssetPack(asseteditor::AssetEditorUpdateAssetPack),
+	316 => AssetEditorCreateAssetPack(asseteditor::AssetEditorCreateAssetPack),
+	317 => AssetEditorDeleteAssetPack(asseteditor::AssetEditorDeleteAssetPack),
+	318 => AssetEditorEnableAssetPack(asseteditor::AssetEditorEnableAssetPack),
+	319 => AssetEditorAssetListSetup(asseteditor::AssetEditorAssetListSetup) [compressed],
+	320 => AssetEditorAssetListUpdate(asseteditor::AssetEditorAssetListUpdate) [compressed],
+	321 => AssetEditorRequestChildrenList(asseteditor::AssetEditorRequestChildrenList),
+	322 => AssetEditorRequestChildrenListReply(asseteditor::AssetEditorRequestChildrenListReply),
+	323 => AssetEditorUpdateJsonAsset(asseteditor::AssetEditorUpdateJsonAsset) [compressed],
+	324 => AssetEditorUpdateAsset(asseteditor::AssetEditorUpdateAsset),
+	325 => AssetEditorJsonAssetUpdated(asseteditor::AssetEditorJsonAssetUpdated),
+	326 => AssetEditorAssetUpdated(asseteditor::AssetEditorAssetUpdated),
+	327 => AssetEditorCreateAsset(asseteditor::AssetEditorCreateAsset),
+	328 => AssetEditorRenameAsset(asseteditor::AssetEditorRenameAsset),
+	329 => AssetEditorDeleteAsset(asseteditor::AssetEditorDeleteAsset),
+	330 => AssetEditorDiscardChanges(asseteditor::AssetEditorDiscardChanges),
+	331 => AssetEditorFetchAutoCompleteData(asseteditor::AssetEditorFetchAutoCompleteData),
+	332 => AssetEditorFetchAutoCompleteDataReply(asseteditor::AssetEditorFetchAutoCompleteDataReply),
+	333 => AssetEditorRequestDataset(asseteditor::AssetEditorRequestDataset),
+	334 => AssetEditorRequestDatasetReply(asseteditor::AssetEditorRequestDatasetReply),
+	335 => AssetEditorActivateButton(asseteditor::AssetEditorActivateButton),
+	336 => AssetEditorSelectAsset(asseteditor::AssetEditorSelectAsset),
+	337 => AssetEditorPopupNotification(asseteditor::AssetEditorPopupNotification),
+	338 => AssetEditorFetchLastModifiedAssets(asseteditor::AssetEditorFetchLastModifiedAssets),
+	339 => AssetEditorLastModifiedAssets(asseteditor::AssetEditorLastModifiedAssets),
+	340 => AssetEditorModifiedAssetsCount(asseteditor::AssetEditorModifiedAssetsCount),
+	341 => AssetEditorSubscribeModifiedAssetsChanges(asseteditor::AssetEditorSubscribeModifiedAssetsChanges),
+	342 => AssetEditorExportAssets(asseteditor::AssetEditorExportAssets),
+	343 => AssetEditorExportAssetInitialize(asseteditor::AssetEditorExportAssetInitialize),
+	344 => AssetEditorExportAssetPart(asseteditor::AssetEditorExportAssetPart) [compressed],
+	345 => AssetEditorExportAssetFinalize(asseteditor::AssetEditorExportAssetFinalize),
+	346 => AssetEditorExportDeleteAssets(asseteditor::AssetEditorExportDeleteAssets),
+	347 => AssetEditorExportComplete(asseteditor::AssetEditorExportComplete),
+	348 => AssetEditorRebuildCaches(asseteditor::AssetEditorRebuildCaches),
+	349 => AssetEditorUndoChanges(asseteditor::AssetEditorUndoChanges),
+	350 => AssetEditorRedoChanges(asseteditor::AssetEditorRedoChanges),
+	351 => AssetEditorUndoRedoReply(asseteditor::AssetEditorUndoRedoReply),
+	352 => AssetEditorSetGameTime(asseteditor::AssetEditorSetGameTime),
+	353 => AssetEditorUpdateSecondsPerGameDay(asseteditor::AssetEditorUpdateSecondsPerGameDay),
+	354 => AssetEditorUpdateWeatherPreviewLock(asseteditor::AssetEditorUpdateWeatherPreviewLock),
+	355 => AssetEditorUpdateModelPreview(asseteditor::AssetEditorUpdateModelPreview),
+
+	// World, part 2 for some reason
+	360 => UpdateSunSettings(world::UpdateSunSettings),
+	361 => UpdatePostFxSettings(world::UpdatePostFxSettings),
 
 	// Builder Tools
 	400 => BuilderToolArgUpdate(buildertools::BuilderToolArgUpdate),

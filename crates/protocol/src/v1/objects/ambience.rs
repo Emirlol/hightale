@@ -1,3 +1,4 @@
+use macros::define_packet;
 use super::{
 	RangeB,
 	RangeF,
@@ -5,40 +6,38 @@ use super::{
 };
 use crate::{
 	define_enum,
-	define_packet,
 };
 
 define_packet! {
 	AmbienceFXBlockSoundSet {
 		fixed {
 			required block_sound_set_index: i32,
-			opt percent: RangeF,
+			opt(1) percent: RangeF,
 		}
 	}
 }
 
 define_packet! {
 	AmbienceFXConditions {
-		mask_size: 2
 		fixed {
 			required never: bool,
 			required environment_tag_pattern_index: i32,
 			required weather_tag_pattern_index: i32,
-			opt(4) altitude: RangeI [pad=8],
-			opt(5) walls: RangeB [pad=2],
+			opt(0, 16) altitude: RangeI,
+			opt(0, 32) walls: RangeB,
 			required roof: bool,
 			required roof_material_tag_pattern_index: i32,
 			required floor: bool,
-			opt(6) sun_light_level: RangeB [pad=2],
-			opt(7) torch_light_level: RangeB [pad=2],
-			opt(8) global_light_level: RangeB [pad=2],
-			opt(9) day_time: RangeF [pad=8],
+			opt(0, 64) sun_light_level: RangeB,
+			opt(0, 128) torch_light_level: RangeB,
+			opt(1, 1) global_light_level: RangeB,
+			opt(1, 2) day_time: RangeF,
 		}
 		variable {
-			opt(0) environment_indices: Vec<i32>,
-			opt(1) weather_indices: Vec<i32>,
-			opt(2) fluid_fx_indices: Vec<i32>,
-			opt(3) surrounding_block_sound_sets: Vec<AmbienceFXBlockSoundSet>
+			opt(0, 1) environment_indices: Vec<i32>,
+			opt(0, 2) weather_indices: Vec<i32>,
+			opt(0, 4) fluid_fx_indices: Vec<i32>,
+			opt(0, 8) surrounding_block_sound_sets: Vec<AmbienceFXBlockSoundSet>
 		}
 	}
 }
@@ -67,8 +66,8 @@ define_packet! {
 			required play_3d: AmbienceFXSoundPlay3D,
 			required block_sound_set_index: i32,
 			required altitude: AmbienceFXAltitude,
-			opt frequency: RangeF [pad=8],
-			opt volume: RangeI [pad=8],
+			opt(1) frequency: RangeF,
+			opt(2) volume: RangeI,
 		}
 	}
 }
@@ -77,7 +76,9 @@ define_packet! {
 	AmbienceFXMusic {
 		fixed {
 			required volume: f32,
-			opt tracks: Vec<String>,
+		}
+		variable {
+			opt(1) tracks: Vec<String>,
 		}
 	}
 }
@@ -95,7 +96,9 @@ define_packet! {
 		fixed {
 			required volume: f32,
 			required transition_speed: AmbienceTransitionSpeed,
-			opt track: String,
+		}
+		variable {
+			opt(1) track: String,
 		}
 	}
 }
@@ -111,17 +114,17 @@ define_packet! {
 define_packet! {
 	AmbienceFX {
 		fixed {
-			opt(5) sound_effect: AmbienceFXSoundEffect [pad=9],
+			opt(32) sound_effect: AmbienceFXSoundEffect,
 			required priority: i32,
 			required audio_category_index: i32,
 		}
 		variable {
-			opt(0) id: String,
-			opt(1) conditions: AmbienceFXConditions,
-			opt(2) sounds: Vec<AmbienceFXSound>,
-			opt(3) music: AmbienceFXMusic,
-			opt(4) ambient_bed: AmbienceFXAmbientBed,
-			opt(6) blocked_ambience_fx_indices: Vec<i32>,
+			opt(1) id: String,
+			opt(2) conditions: AmbienceFXConditions,
+			opt(4) sounds: Vec<AmbienceFXSound>,
+			opt(8) music: AmbienceFXMusic,
+			opt(16) ambient_bed: AmbienceFXAmbientBed,
+			opt(64) blocked_ambience_fx_indices: Vec<i32>,
 		}
 	}
 }

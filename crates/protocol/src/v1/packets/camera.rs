@@ -1,6 +1,6 @@
+use macros::define_packet;
 use crate::{
 	define_enum,
-	define_packet,
 	v1::{
 		ApplyLookType,
 		ApplyMovementType,
@@ -60,24 +60,24 @@ define_packet! {
 			required skip_character_physics: bool,
 			required is_first_person: bool,
 			required movement_force_rotation_type: MovementForceRotationType,
-			opt(0) movement_force_rotation: DirectionF [pad=12],
+			opt(1) movement_force_rotation: DirectionF,
 			required attached_to_type: AttachedToType,
 			required attached_to_entity_id: i32,
 			required eye_offset: bool,
 			required position_distance_offset_type: PositionDistanceOffsetType,
-			opt(1) position_offset: PositionF [pad=24],
-			opt(2) rotation_offset: DirectionF [pad=12],
+			opt(2) position_offset: PositionF,
+			opt(4) rotation_offset: DirectionF,
 			required position_type: PositionType,
-			opt(3) position: PositionF [pad=24],
+			opt(8) position: PositionF,
 			required rotation_type: RotationType,
-			opt(4) rotation: DirectionF [pad=12],
+			opt(16) rotation: DirectionF,
 			required can_move_type: CanMoveType,
 			required apply_movement_type: ApplyMovementType,
-			opt(5) movement_multiplier: Vector3f [pad=12],
+			opt(32) movement_multiplier: Vector3f,
 			required apply_look_type: ApplyLookType,
-			opt(6) look_multiplier: Vector2f [pad=8],
+			opt(64) look_multiplier: Vector2f,
 			required mouse_input_type: MouseInputType,
-			opt(7) plane_normal: Vector3f [pad=12],
+			opt(128) plane_normal: Vector3f,
 		}
 	}
 }
@@ -87,7 +87,7 @@ define_packet! {
 		fixed {
 			required client_camera_view: ClientCameraView,
 			required is_locked: bool,
-			opt camera_settings: Box<ServerCameraSettings>, // Boxed to avoid large packet enum size
+			opt(1) camera_settings: Box<ServerCameraSettings>, // Boxed to avoid large packet enum size
 		}
 	}
 }

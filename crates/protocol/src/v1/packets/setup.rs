@@ -1,22 +1,31 @@
 use std::collections::HashMap;
 
 use bytes::Bytes;
+use macros::define_packet;
 
 use crate::{
 	define_enum,
-	define_packet,
 	v1::Asset,
 };
 
 // Simple signal packet with no data
-define_packet! { AssetFinalize {} }
+define_packet! { AssetFinalize }
 
-define_packet! { AssetInitialize { size: i32, asset: Asset } }
+define_packet! {
+	AssetInitialize {
+		fixed {
+			required size: i32,
+		}
+		variable {
+			required asset: Asset
+		}
+	}
+}
 
 define_packet! {
 	AssetPart {
-		fixed {
-			opt part: Bytes
+		variable {
+			opt(1) part: Bytes
 		}
 	}
 }
@@ -35,60 +44,59 @@ define_enum! {
 
 define_packet! {
 	PlayerSkin {
-		mask_size: 3,
 		variable {
-			opt(0) body_characteristic: String,
-			opt(1) underwear: String,
-			opt(2) face: String,
-			opt(3) eyes: String,
-			opt(4) ears: String,
-			opt(5) mouth: String,
-			opt(6) facial_hair: String,
-			opt(7) haircut: String,
-			opt(8) eyebrows: String,
-			opt(9) pants: String,
-			opt(10) overpants: String,
-			opt(11) undertop: String,
-			opt(12) overtop: String,
-			opt(13) shoes: String,
-			opt(14) head_accessory: String,
-			opt(15) face_accessory: String,
-			opt(16) ear_accessory: String,
-			opt(17) skin_feature: String,
-			opt(18) gloves: String,
-			opt(19) cape: String,
+			opt(0, 1) body_characteristic: String,
+			opt(0, 2) underwear: String,
+			opt(0, 4) face: String,
+			opt(0, 8) eyes: String,
+			opt(0, 16) ears: String,
+			opt(0, 32) mouth: String,
+			opt(0, 64) facial_hair: String,
+			opt(0, 128) haircut: String,
+			opt(1, 1) eyebrows: String,
+			opt(1, 2) pants: String,
+			opt(1, 4) overpants: String,
+			opt(1, 8) undertop: String,
+			opt(1, 16) overtop: String,
+			opt(1, 32) shoes: String,
+			opt(1, 64) head_accessory: String,
+			opt(1, 128) face_accessory: String,
+			opt(2, 1) ear_accessory: String,
+			opt(2, 2) skin_feature: String,
+			opt(2, 4) gloves: String,
+			opt(2, 8) cape: String,
 		}
 	}
 }
 
 define_packet! {
 	PlayerOptions {
-		fixed {
-			opt player_skin: Box<PlayerSkin>, // Box it since it's like 480 bytes and it bloats the largest packet size in the packet enum
+		variable {
+			opt(1) player_skin: Box<PlayerSkin>, // Box it since it's like 480 bytes and it bloats the largest packet size in the packet enum
 		}
 	}
 }
 define_packet! {
 	RemoveAssets {
-		fixed {
-			opt assets: Vec<Asset>,
+		variable {
+			opt(1) assets: Vec<Asset>,
 		}
 	}
 }
 define_packet! {
 	RequestAssets {
-		fixed {
-			opt assets: Vec<Asset>,
+		variable {
+			opt(1) assets: Vec<Asset>,
 		}
 	}
 }
 // Simple signal packet with no data
-define_packet! { RequestCommonAssetsRebuild {} }
+define_packet! { RequestCommonAssetsRebuild }
 
 define_packet! {
 	ServerTags {
-		fixed {
-			opt tags: HashMap<String, i32>,
+		variable {
+			opt(1) tags: HashMap<String, i32>,
 		}
 	}
 }
@@ -98,8 +106,8 @@ define_packet! { SetUpdateRate { updates_per_second: i32 } }
 
 define_packet! {
 	UpdateFeatures {
-		fixed {
-			opt features: HashMap<ClientFeature, bool>,
+		variable {
+			opt(1) features: HashMap<ClientFeature, bool>,
 		}
 	}
 }
@@ -113,7 +121,9 @@ define_packet! {
 		fixed {
 			required percent_complete: i32,
 			required percent_complete_subitem: i32,
-			opt message: String,
+		}
+		variable {
+			opt(1) message: String,
 		}
 	}
 }
@@ -121,7 +131,9 @@ define_packet! {
 	WorldSettings {
 		fixed {
 			required world_height: i32,
-			opt required_assets: Vec<Asset>
+		}
+		variable {
+			opt(1) required_assets: Vec<Asset>
 		}
 	}
 }

@@ -1,15 +1,13 @@
 use bytes::Bytes;
+use macros::define_packet;
 
-use crate::{
-	define_packet,
-	v1::HostAddress,
-};
+use crate::v1::HostAddress;
 
 define_packet! {
 	AuthGrant {
 		variable {
-			opt auth_grant: String,
-			opt server_identity: String,
+			opt(1) auth_grant: String,
+			opt(2) server_identity: String,
 		}
 	}
 }
@@ -17,8 +15,8 @@ define_packet! {
 define_packet! {
 	AuthToken {
 		variable {
-			opt access_token: String,
-			opt server_grant: String,
+			opt(1) access_token: String,
+			opt(2) server_grant: String,
 		}
 	}
 }
@@ -26,42 +24,45 @@ define_packet! {
 define_packet! {
 	ClientReferral {
 		variable {
-			opt host_to: HostAddress,
-			opt data: Bytes
+			opt(1) host_to: HostAddress,
+			opt(2) data: Bytes
 		}
 	}
 }
 
 define_packet! {
 	ConnectAccept {
-		fixed {
-			opt password_challenge: Bytes
+		variable {
+			opt(1) password_challenge: Bytes
 		}
 	}
 }
-// Empty signal packet
-define_packet! { PasswordAccepted {} }
+
+define_packet! { PasswordAccepted }
 
 define_packet! {
 	PasswordRejected {
 		fixed {
 			required attempts_remaining: i32,
-			opt new_challenge: Bytes,
+		}
+		variable {
+			opt(1) new_challenge: Bytes,
 		}
 	}
 }
+
 define_packet! {
 	PasswordResponse {
-		fixed {
-			opt hash: Bytes
+		variable {
+			opt(1) hash: Bytes
 		}
 	}
 }
 define_packet! {
 	ServerAuthToken {
 		variable {
-			opt server_access_token: String,
-			opt password_challenge: Bytes,
+			opt(1) server_access_token: String,
+			opt(2) password_challenge: Bytes,
 		}
 	}
 }
@@ -72,8 +73,8 @@ define_packet! {
 			required max_players: i32,
 		}
 		variable {
-			opt name: String,
-			opt motd: String,
+			opt(1) name: String,
+			opt(2) motd: String,
 		}
 	}
 }

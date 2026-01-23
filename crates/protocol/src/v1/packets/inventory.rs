@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
+use macros::define_packet;
+
 use crate::{
 	define_enum,
-	define_packet,
 	v1::{
 		ItemQuantity,
 		ItemWithAllMetadata,
@@ -10,7 +11,11 @@ use crate::{
 	},
 };
 
-define_packet! { DropCreativeItem { item: ItemQuantity } }
+define_packet! { DropCreativeItem {
+	variable {
+		required item: ItemQuantity
+	}
+} }
 
 define_packet! { DropItemStack {
 	inventory_section_id: i32,
@@ -46,12 +51,18 @@ define_packet! { SetActiveSlot {
 	active_slot: i32
 } }
 
-define_packet! { SetCreativeItem {
-	inventory_section_id: i32,
-	slot_id: i32,
-	r#override: bool, // "override" is a reserved keyword
-	item: ItemQuantity
-} }
+define_packet! {
+	SetCreativeItem {
+		fixed {
+			required inventory_section_id: i32,
+			required slot_id: i32,
+			required r#override: bool, // "override" is a reserved keyword
+		}
+		variable {
+			required item: ItemQuantity
+		}
+	}
+}
 
 define_enum! {
 	pub enum SmartMoveType {
@@ -61,10 +72,16 @@ define_enum! {
 	}
 }
 
-define_packet! { SmartGiveCreativeItem {
-	move_type: SmartMoveType,
-	item: ItemQuantity
-} }
+define_packet! {
+	SmartGiveCreativeItem {
+		fixed {
+			required move_type: SmartMoveType,
+		}
+		variable {
+			required item: ItemQuantity
+		}
+	}
+}
 
 define_packet! { SmartMoveItemStack {
 	from_section_id: i32,
@@ -75,8 +92,8 @@ define_packet! { SmartMoveItemStack {
 
 define_packet! {
 	SwitchHotbarBlockSet {
-		fixed {
-			opt item_id: String
+		variable {
+			opt(1) item_id: String
 		}
 	}
 }
@@ -85,7 +102,9 @@ define_packet! {
 	InventorySection {
 		fixed {
 			required capacity: i16,
-			opt items: HashMap<i32, ItemWithAllMetadata>
+		}
+		variable {
+			opt(1) items: HashMap<i32, ItemWithAllMetadata>
 		}
 	}
 }
@@ -96,13 +115,13 @@ define_packet! {
 			required sort_type: SortType,
 		}
 		variable {
-			opt storage: InventorySection,
-			opt armor: InventorySection,
-			opt hotbar: InventorySection,
-			opt utility: InventorySection,
-			opt builder_material: InventorySection,
-			opt tools: InventorySection,
-			opt backpack: InventorySection,
+			opt(1) storage: InventorySection,
+			opt(2) armor: InventorySection,
+			opt(4) hotbar: InventorySection,
+			opt(8) utility: InventorySection,
+			opt(16) builder_material: InventorySection,
+			opt(32) tools: InventorySection,
+			opt(64) backpack: InventorySection,
 		}
 	}
 }

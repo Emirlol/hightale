@@ -1,16 +1,16 @@
 use bytes::Bytes;
+use macros::define_packet;
 
 use crate::{
 	define_enum,
-	define_packet,
 	v1::Model,
 };
 
 define_packet! { RequestMachinimaActorModel {
 	variable {
-		opt model_id: String,
-		opt scene_name: String,
-		opt actor_name: String
+		opt(1) model_id: String,
+		opt(2) scene_name: String,
+		opt(4) actor_name: String
 	}
 } }
 define_enum! {
@@ -23,12 +23,10 @@ define_enum! {
 	}
 }
 define_packet! { SetMachinimaActorModel {
-	fixed {
-		opt model: Model
-	}
 	variable {
-		opt scene_name: String,
-		opt actor_name: String
+		opt(1) model: Model,
+		opt(2) scene_name: String,
+		opt(4) actor_name: String
 	}
 } }
 define_packet! { UpdateMachinimaScene {
@@ -37,7 +35,7 @@ define_packet! { UpdateMachinimaScene {
 		required update_type: SceneUpdateType
 	}
 	variable {
-		opt scene_name: String,
-		opt scene: Bytes
+		opt(1) scene_name: String,
+		opt(2) scene: Bytes
 	}
 } }

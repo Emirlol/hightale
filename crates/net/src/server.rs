@@ -97,7 +97,7 @@ impl QuicServer {
 	pub async fn bind(addr: SocketAddr, cert: ServerCert, auth_manager: Arc<ServerAuthManager>) -> Result<Self> {
 		info!("Setting up QUIC transport...");
 
-		let ServerCert { chain, key, fingerprint } = cert;
+		let ServerCert { chain, key, fingerprint: _ } = cert;
 
 		let mut tls = rustls::ServerConfig::builder()
 			.with_client_cert_verifier(Arc::new(AllowAnyClientCertVerifier::new()))

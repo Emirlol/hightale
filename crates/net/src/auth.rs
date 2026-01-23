@@ -18,10 +18,7 @@ use chrono::{
 	Utc,
 };
 use parking_lot::RwLock;
-use rand::{
-	Rng,
-	RngCore,
-};
+use rand::RngCore;
 use reqwest::Client;
 use serde::{
 	Deserialize,
@@ -338,8 +335,7 @@ impl ServerAuthManager {
 		let server_id = parse_sub_from_jwt(&id_token)?;
 
 		info!("Creating Game Session...");
-		let game_session = self.api.create_game_session(&token_data.access_token, profile.uuid).await
-			.context("Failed to create game session")?;
+		let game_session = self.api.create_game_session(&token_data.access_token, profile.uuid).await.context("Failed to create game session")?;
 
 		let session = ServerSession {
 			session_token: game_session.session_token,

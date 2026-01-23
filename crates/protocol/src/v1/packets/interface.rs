@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
+use macros::define_packet;
 use uuid::Uuid;
 
 use crate::{
 	define_enum,
-	define_packet,
 	v1::{
 		CraftingRecipe,
 		FormattedMessage,
@@ -15,8 +15,8 @@ use crate::{
 
 define_packet! {
 	AddToServerPlayerList {
-		fixed {
-			opt players: Vec<ServerPlayerListPlayer>
+		variable {
+			opt(1) players: Vec<ServerPlayerListPlayer>
 		}
 	}
 }
@@ -33,8 +33,8 @@ define_packet! {
 
 define_packet! {
 	ChatMessage {
-		fixed {
-			opt message: String
+		variable {
+			opt(1) message: String
 		}
 	}
 }
@@ -56,7 +56,9 @@ define_packet! {
 	CustomHud {
 		fixed {
 			required clear: bool,
-			opt commands: Vec<CustomUICommand>
+		}
+		variable {
+			opt(1) commands: Vec<CustomUICommand>
 		}
 	}
 }
@@ -69,9 +71,9 @@ define_packet! {
 			required lifetime: CustomPageLifetime,
 		}
 		variable {
-			opt key: String,
-			opt commands: Vec<CustomUICommand>,
-			opt event_bindings: Vec<CustomUIEventBinding>,
+			opt(1) key: String,
+			opt(2) commands: Vec<CustomUICommand>,
+			opt(4) event_bindings: Vec<CustomUIEventBinding>,
 		}
 	}
 }
@@ -80,7 +82,9 @@ define_packet! {
 	CustomPageEvent {
 		fixed {
 			required custom_page_event_type: CustomPageEventType,
-			opt data: String
+		}
+		variable {
+			opt(1) data: String
 		}
 	}
 }
@@ -107,9 +111,9 @@ define_packet! {
 			required custom_ui_command_type: CustomUICommandType,
 		}
 		variable {
-			opt selector: String,
-			opt data: String,
-			opt text: String
+			opt(1) selector: String,
+			opt(2) data: String,
+			opt(4) text: String
 		}
 	}
 }
@@ -133,8 +137,8 @@ define_packet! {
 			required lock_interface: bool,
 		}
 		variable {
-			opt selector: String,
-			opt data: String,
+			opt(1) selector: String,
+			opt(2) data: String,
 		}
 	}
 }
@@ -178,13 +182,13 @@ define_packet! {
 define_packet! {
 	EditorBlocksChange {
 		fixed {
-			opt(0) selection: EditorSelection [pad=24],
+			opt(1) selection: EditorSelection,
 			required blocks_count: i32,
 			required advanced_preview: bool,
 		}
 		variable {
-			opt(1) blocks_change: Vec<BlockChange>,
-			opt(2) fluids_change: Vec<FluidChange>,
+			opt(2) blocks_change: Vec<BlockChange>,
+			opt(4) fluids_change: Vec<FluidChange>,
 		}
 	}
 }
@@ -234,11 +238,10 @@ define_enum! {
 
 define_packet! {
 	KillFeedMessage {
-		fixed {}
 		variable {
-			opt killer: FormattedMessage,
-			opt decedent: FormattedMessage,
-			opt icon: String
+			opt(1) killer: FormattedMessage,
+			opt(2) decedent: FormattedMessage,
+			opt(4) icon: String
 		}
 	}
 }
@@ -249,10 +252,10 @@ define_packet! {
 			required style: NotificationStyle,
 		}
 		variable {
-			opt message: FormattedMessage,
-			opt secondary_message: FormattedMessage,
-			opt icon: String,
-			opt item: ItemWithAllMetadata,
+			opt(1) message: FormattedMessage,
+			opt(2) secondary_message: FormattedMessage,
+			opt(4) icon: String,
+			opt(8) item: ItemWithAllMetadata,
 		}
 	}
 }
@@ -267,8 +270,8 @@ define_enum! {
 
 define_packet! {
 	OpenChatWithCommand {
-		fixed {
-			opt command: String
+		variable {
+			opt(1) command: String
 		}
 	}
 }
@@ -290,7 +293,9 @@ define_packet! {
 		fixed {
 			required exploration_seconds: i32,
 			required breach_seconds: i32,
-			opt name_key: String
+		}
+		variable {
+			opt(1) name_key: String
 		}
 	}
 }
@@ -300,8 +305,8 @@ define_packet! { PortalState {
 } }
 define_packet! {
 	RemoveFromServerPlayerList {
-		fixed {
-			opt players: Vec<Uuid>,
+		variable {
+			opt(1) players: Vec<Uuid>,
 		}
 	}
 }
@@ -312,8 +317,8 @@ define_packet! {
 			required max_players: i32
 		}
 		variable {
-			opt server_name: String,
-			opt motd: String
+			opt(1) server_name: String,
+			opt(2) motd: String
 		}
 	}
 }
@@ -321,7 +326,9 @@ define_packet! {
 	ServerMessage {
 		fixed {
 			required chat_type: ChatType,
-			opt message: FormattedMessage
+		}
+		variable {
+			opt(1) message: FormattedMessage
 		}
 	}
 }
@@ -329,9 +336,11 @@ define_packet! {
 	ServerPlayerListPlayer {
 		fixed {
 			required uuid: Uuid,
-			opt(1) world_uuid: Uuid [pad=16],
+			opt(2) world_uuid: Uuid,
 			required pin: i32,
-			opt(0) username: String,
+		}
+		variable {
+			opt(1) username: String,
 		}
 	}
 }
@@ -349,52 +358,52 @@ define_packet! {
 			required is_major: bool
 		}
 		variable {
-			opt icon: String,
-			opt primary_title: FormattedMessage,
-			opt secondary_title: FormattedMessage,
+			opt(1) icon: String,
+			opt(2) primary_title: FormattedMessage,
+			opt(4) secondary_title: FormattedMessage,
 		}
 	}
 }
 define_packet! {
 	UpdateKnownRecipes {
-		fixed {
-			opt known: HashMap<String, CraftingRecipe>
+		variable {
+			opt(1) known: HashMap<String, CraftingRecipe>
 		}
 	}
 }
 define_packet! {
 	UpdateLanguage {
-		fixed {
-			opt language: String
+		variable {
+			opt(1) language: String
 		}
 	}
 }
 define_packet! {
 	UpdatePortal{
 		variable {
-			opt state: PortalState,
-			opt def: PortalDef,
+			opt(1) state: PortalState,
+			opt(2) def: PortalDef,
 		}
 	}
 }
 define_packet! {
 	UpdateServerPlayerList {
-		fixed {
-			opt players: Vec<ServerPlayerListUpdate>
+		variable {
+			opt(1) players: Vec<ServerPlayerListUpdate>
 		}
 	}
 }
 define_packet! {
 	UpdateServerPlayerListPing {
-		fixed {
-			opt players: HashMap<Uuid, i32>
+		variable {
+			opt(1) players: HashMap<Uuid, i32>
 		}
 	}
 }
 define_packet! {
 	UpdateVisibleHudComponents {
-		fixed {
-			opt components: Vec<HudComponent>
+		variable {
+			opt(1) components: Vec<HudComponent>
 		}
 	}
 }

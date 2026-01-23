@@ -1,6 +1,7 @@
+use macros::define_packet;
+
 use crate::{
 	define_enum,
-	define_packet,
 	v1::HostAddress,
 };
 
@@ -19,7 +20,9 @@ define_packet! {
 	SetServerAccess {
 		fixed {
 			required access: Access,
-			opt password: String
+		}
+		variable {
+			opt(1) password: String
 		}
 	}
 }
@@ -28,7 +31,9 @@ define_packet! {
 	UpdateServerAccess {
 		fixed {
 			required access: Access,
-			opt hosts: Vec<HostAddress>
+		}
+		variable {
+			opt(1) hosts: Vec<HostAddress>
 		}
 	}
 }

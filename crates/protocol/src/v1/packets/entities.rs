@@ -1,6 +1,6 @@
+use macros::define_packet;
 use crate::{
 	define_enum,
-	define_packet,
 	v1::{
 		DirectionF,
 		EntityUpdate,
@@ -37,7 +37,7 @@ define_packet! { VelocityConfig {
 define_packet! {
 	ApplyKnockback {
 		fixed {
-			opt hit_position: PositionF [pad=24],
+			opt(1) hit_position: PositionF,
 			required pos: Vector3f,
 			required change_type: ChangeVelocityType
 		}
@@ -49,7 +49,7 @@ define_packet! {
 		fixed {
 			required velocity: Vector3f,
 			required change_type: ChangeVelocityType,
-			opt config: VelocityConfig
+			opt(1) config: VelocityConfig
 		}
 	}
 }
@@ -57,8 +57,8 @@ define_packet! {
 define_packet! {
 	EntityUpdates {
 		variable {
-			opt removed: Vec<i32>,
-			opt updates: Vec<EntityUpdate>
+			opt(1) removed: Vec<i32>,
+			opt(2) updates: Vec<EntityUpdate>
 		}
 	}
 }
@@ -66,9 +66,9 @@ define_packet! {
 define_packet! {
 	MountMovement {
 		fixed {
-			opt absolute_position: PositionF [pad=24],
-			opt body_orientation: DirectionF [pad=12],
-			opt movement_states: MovementStates [pad=22],
+			opt(1) absolute_position: PositionF,
+			opt(2) body_orientation: DirectionF,
+			opt(4) movement_states: MovementStates,
 		}
 	}
 }
@@ -90,8 +90,8 @@ define_packet! {
 			required slot: AnimationSlot,
 		}
 		variable {
-			opt item_animations_id: String,
-			opt animation_id: String
+			opt(1) item_animations_id: String,
+			opt(2) animation_id: String
 		}
 	}
 }
@@ -102,7 +102,9 @@ define_packet! {
 	SpawnModelParticles {
 		fixed {
 			required entity_id: i32,
-			opt model_particles: Vec<ModelParticle>
+		}
+		variable {
+			opt(1) model_particles: Vec<ModelParticle>
 		}
 	}
 }

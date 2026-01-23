@@ -7,6 +7,7 @@ use bytes::{
 	Bytes,
 	BytesMut,
 };
+use macros::define_packet;
 use ordered_float::OrderedFloat;
 use uuid::Uuid;
 
@@ -20,18 +21,8 @@ use crate::{
 		VarInt,
 	},
 	define_enum,
-	define_packet,
 	id_dispatch,
 	v1::{
-		Color,
-		ColorAlpha,
-		ColorLight,
-		InteractionCooldown,
-		InteractionRules,
-		RangeF,
-		RangeI,
-		RangeVector2f,
-		RangeVector3f,
 		buildertools::BuilderToolState,
 		interaction::InteractionType,
 		objects::{
@@ -43,6 +34,15 @@ use crate::{
 			Vector3f,
 			Vector3i,
 		},
+		Color,
+		ColorAlpha,
+		ColorLight,
+		InteractionCooldown,
+		InteractionRules,
+		RangeF,
+		RangeI,
+		RangeVector2f,
+		RangeVector3f,
 	},
 };
 
@@ -66,12 +66,25 @@ pub mod worldmap;
 /// Max size for variable length items, like strings, maps, lists, etc.
 pub const MAX_SIZE: i32 = 4_096_000;
 
-define_packet! { HostAddress { port: u16, host: String } }
+define_packet! {
+	HostAddress {
+		fixed {
+			required port: u16
+		}
+		variable {
+			required host: String
+		}
+	}
+}
 
 define_packet! {
 	Asset {
-		hash: FixedAscii<64>, // 64-char Hex String
-		name: String,         // Filename (e.g. "models/player.json")
+		fixed {
+			required hash: FixedAscii<64>, // 64-char Hex String
+		}
+		variable {
+			required name: String,         // Filename (e.g. "models/player.json")
+		}
 	}
 }
 
@@ -161,8 +174,8 @@ define_enum! {
 
 define_packet! {
 	StringParamValue {
-		fixed {
-			opt(0) value: String
+		variable {
+			opt(1) value: String
 		}
 	}
 }
@@ -226,13 +239,13 @@ define_packet! {
 			required markup_enabled: bool,
 		}
 		variable {
-			opt raw_text: String,
-			opt message_id: String,
-			opt children: Vec<FormattedMessage>,
-			opt params: HashMap<String, ParamValue>,
-			opt message_params: HashMap<String, FormattedMessage>,
-			opt color: String,
-			opt link: String
+			opt(1) raw_text: String,
+			opt(2) message_id: String,
+			opt(4) children: Vec<FormattedMessage>,
+			opt(8) params: HashMap<String, ParamValue>,
+			opt(16) message_params: HashMap<String, FormattedMessage>,
+			opt(32) color: String,
+			opt(64) link: String
 		}
 	}
 }
@@ -247,7 +260,7 @@ define_packet! {
 		}
 		variable {
 			required item_id: String,
-			opt metadata: String
+			opt(1) metadata: String
 		}
 	}
 }
@@ -259,8 +272,8 @@ define_packet! {
 			required quantity: i32
 		}
 		variable {
-			opt item_id: String,
-			opt resource_type_id: String
+			opt(1) item_id: String,
+			opt(2) resource_type_id: String
 		}
 	}
 }
@@ -281,8 +294,8 @@ define_packet! {
 			required required_tier_level: i32,
 		}
 		variable {
-			opt id: String,
-			opt categories: Vec<String>
+			opt(1) id: String,
+			opt(2) categories: Vec<String>
 		}
 	}
 }
@@ -295,11 +308,11 @@ define_packet! {
 			required required_memories_level: i32
 		}
 		variable {
-			opt id: String,
-			opt inputs: Vec<MaterialQuantity>,
-			opt outputs: Vec<MaterialQuantity>,
-			opt primary_output: MaterialQuantity,
-			opt bench_requirement: Vec<BenchRequirement>,
+			opt(1) id: String,
+			opt(2) inputs: Vec<MaterialQuantity>,
+			opt(4) outputs: Vec<MaterialQuantity>,
+			opt(8) primary_output: MaterialQuantity,
+			opt(16) bench_requirement: Vec<BenchRequirement>,
 		}
 	}
 }
@@ -351,9 +364,9 @@ define_packet! {
 	SelectedHitEntity {
 		fixed {
 			required network_id: i32,
-			opt hit_location: Vector3f [pad=12],
-			opt position: PositionF [pad=24],
-			opt body_rotation: DirectionF [pad=12]
+			opt(1) hit_location: Vector3f,
+			opt(2) position: PositionF,
+			opt(4) body_rotation: DirectionF
 		}
 	}
 }
@@ -390,8 +403,8 @@ define_enum! {
 
 define_packet! {
 	Nameplate {
-		fixed {
-			opt text: String
+		variable {
+			opt(1) text: String
 		}
 	}
 }
@@ -400,7 +413,9 @@ define_packet! {
 	CombatTextUpdate {
 		fixed {
 			required hit_angle_deg: f32,
-			opt text: String
+		}
+		variable {
+			opt(1) text: String
 		}
 	}
 }
@@ -418,8 +433,10 @@ define_enum! {
 define_packet! {
 	CameraAxis {
 		fixed {
-			opt angle_range: RangeF [pad=8],
-			opt target_nodes: Vec<CameraNode>,
+			opt(1) angle_range: RangeF,
+		}
+		variable {
+			opt(2) target_nodes: Vec<CameraNode>,
 		}
 	}
 }
@@ -427,11 +444,11 @@ define_packet! {
 define_packet! {
 	CameraSettings {
 		fixed {
-			opt position_offset: Vector3f [pad=12],
+			opt(1) position_offset: Vector3f,
 		}
 		variable {
-			opt yaw: CameraAxis,
-			opt pitch: CameraAxis,
+			opt(2) yaw: CameraAxis,
+			opt(4) pitch: CameraAxis,
 			// No roll
 		}
 	}
@@ -448,8 +465,8 @@ define_packet! {
 			required passive_loop_count: i32
 		}
 		variable {
-			opt name: String,
-			opt footstep_invervals_count: Vec<i32>
+			opt(1) name: String,
+			opt(2) footstep_invervals_count: Vec<i32>
 		}
 	}
 }
@@ -457,11 +474,11 @@ define_packet! {
 define_packet! {
 	AnimationSet {
 		fixed {
-			opt next_animation_delay: RangeF [pad=8],
+			opt(1) next_animation_delay: RangeF,
 		}
 		variable {
-			opt id: String,
-			opt animations: Vec<Animation>,
+			opt(2) id: String,
+			opt(4) animations: Vec<Animation>,
 		}
 	}
 }
@@ -469,10 +486,10 @@ define_packet! {
 define_packet! {
 	ModelAttachment {
 		variable {
-			opt model: String,
-			opt texture: String,
-			opt gradient_set: String,
-			opt gradient_id: String
+			opt(1) model: String,
+			opt(2) texture: String,
+			opt(4) gradient_set: String,
+			opt(8) gradient_id: String
 		}
 	}
 }
@@ -496,15 +513,15 @@ define_packet! {
 	ModelParticle {
 		fixed {
 			required scale: f32,
-			opt(1) color: Color [pad=3],
+			opt(2) color: Color,
 			required target_entity_part: EntityPart,
-			opt(3) position_offset: Vector3f [pad=12],
-			opt(4) rotation_offset: DirectionF [pad=12],
+			opt(8) position_offset: Vector3f,
+			opt(16) rotation_offset: DirectionF,
 			required detached_from_model: bool,
 		}
 		variable {
-			opt(0) system_id: String,
-			opt(2) target_node_name: String
+			opt(1) system_id: String,
+			opt(4) target_node_name: String
 		}
 	}
 }
@@ -512,13 +529,13 @@ define_packet! {
 	ModelTrail {
 		fixed {
 			required target_entity_part: EntityPart,
-			opt(2) position_offset: Vector3f [pad=12],
-			opt(3) rotation_offset: DirectionF [pad=12],
+			opt(4) position_offset: Vector3f,
+			opt(8) rotation_offset: DirectionF,
 			required fixed_rotation: bool,
 		}
 		variable {
-			opt(0) trail_id: String,
-			opt(1) target_node_name: String
+			opt(1) trail_id: String,
+			opt(2) target_node_name: String
 		}
 	}
 }
@@ -526,8 +543,8 @@ define_packet! {
 define_packet! {
 	DetailBox {
 		fixed {
-			opt offset: Vector3f [pad=12],
-			opt r#box: Hitbox // Box is a keyword in rust
+			opt(1) offset: Vector3f,
+			opt(2) r#box: Hitbox // Box is a keyword in rust
 		}
 	}
 }
@@ -540,38 +557,37 @@ define_enum! {
 
 define_packet! {
 	Model {
-		mask_size: 2,
 		fixed {
 			required scale: f32,
 			required eye_height: f32,
 			required crouch_offset: f32,
-			opt(8) hitbox: Hitbox [pad=24],
-			opt(11) light: ColorLight [pad=4],
+			opt(1, 1) hitbox: Hitbox,
+			opt(1, 8) light: ColorLight,
 			required phobia: Phobia,
 		}
 		variable {
-			opt(0) asset_id: String,
-			opt(1) path: String,
-			opt(2) texture: String,
-			opt(3) gradient_set: String,
-			opt(4) gradient_id: String,
-			opt(5) camera: CameraSettings,
-			opt(6) animation_sets: HashMap<String, AnimationSet>,
-			opt(7) attachments: Vec<ModelAttachment>,
+			opt(0, 1) asset_id: String,
+			opt(0, 2) path: String,
+			opt(0, 4) texture: String,
+			opt(0, 8) gradient_set: String,
+			opt(0, 16) gradient_id: String,
+			opt(0, 32) camera: CameraSettings,
+			opt(0, 64) animation_sets: HashMap<String, AnimationSet>,
+			opt(0, 128) attachments: Vec<ModelAttachment>,
 
-			opt(9) particles: Vec<ModelParticle>,
-			opt(10) trails: Vec<ModelTrail>,
-			opt(12) detail_boxes: HashMap<String, Vec<DetailBox>>,
-			opt(13) phobia_model: Box<Model>,
+			opt(1, 2) particles: Vec<ModelParticle>,
+			opt(1, 4) trails: Vec<ModelTrail>,
+			opt(1, 16) detail_boxes: HashMap<String, Vec<DetailBox>>,
+			opt(1, 32) phobia_model: Box<Model>,
 		}
 	}
 }
 define_packet! {
 	Equipment {
 		variable {
-			opt armor_ids: Vec<String>,
-			opt right_hand_item_id: String,
-			opt left_hand_item_id: String,
+			opt(1) armor_ids: Vec<String>,
+			opt(2) right_hand_item_id: String,
+			opt(4) left_hand_item_id: String,
 		}
 	}
 }
@@ -614,20 +630,20 @@ define_packet! {
 			required op: EntityStatOp,
 			required predictable: bool,
 			required value: f32,
-			opt(2) modifier: Modifier [pad=6]
+			opt(4) modifier: Modifier
 		}
 		variable {
-			opt modifiers: HashMap<String, Modifier>,
-			opt modifier_key: String
+			opt(1) modifiers: HashMap<String, Modifier>,
+			opt(2) modifier_key: String
 		}
 	}
 }
 define_packet! {
 	ModelTransform {
 		fixed {
-			opt position: PositionF [pad=24],
-			opt body_orientation: DirectionF [pad=12],
-			opt look_orientation: DirectionF [pad=12],
+			opt(1) position: PositionF,
+			opt(2) body_orientation: DirectionF,
+			opt(4) look_orientation: DirectionF,
 		}
 	}
 }
@@ -670,7 +686,9 @@ define_packet! {
 			required remaining_time: f32,
 			required infinite: bool,
 			required debuff: bool,
-			opt status_effect_icon: String
+		}
+		variable {
+			opt(1) status_effect_icon: String
 		}
 	}
 }
@@ -692,8 +710,8 @@ define_packet! {
 	BlockMount {
 		fixed {
 			required mount_type: BlockMountType,
-			opt position: Vector3f [pad=12],
-			opt orientation: Vector3f [pad=12],
+			opt(1) position: Vector3f,
+			opt(2) orientation: Vector3f,
 			required block_type_id: i32,
 		}
 	}
@@ -702,41 +720,40 @@ define_packet! {
 	MountedUpdate {
 		fixed {
 			required mounted_to_entity: i32,
-			opt attachment_offset: Vector3f [pad=12],
+			opt(1) attachment_offset: Vector3f,
 			required mount_controller: MountController,
-			opt block: BlockMount [pad=30],
+			opt(2) block: BlockMount,
 		}
 	}
 }
 define_packet! {
 	ComponentUpdate {
-		mask_size: 3,
 		fixed {
 			required update_type: ComponentUpdateType,
 			required block_id: i32,
 			required entity_scale: f32,
-			opt(8) transform: ModelTransform [pad=49],
-			opt(9) movement_states: MovementStates [pad=22],
-			opt(12) dynamic_light: ColorLight [pad=4],
+			opt(1, 1) transform: ModelTransform,
+			opt(1, 2) movement_states: MovementStates,
+			opt(1, 16) dynamic_light: ColorLight,
 			required hitbox_collision_config_index: i32,
 			required repulsion_config_index: i32,
 			required prediction_id: Uuid,
-			opt(15) mounted: MountedUpdate [pad=48],
+			opt(1, 128) mounted: MountedUpdate,
 		}
 		variable {
-			opt(0) nameplate: Nameplate,
-			opt(1) entity_ui_components: Vec<i32>,
-			opt(2) combat_text_update: CombatTextUpdate,
-			opt(3) model: Model,
-			opt(4) skin: setup::PlayerSkin,
-			opt(5) item: ItemWithAllMetadata,
-			opt(6) equipment: Equipment,
-			opt(7) entity_stat_updates: HashMap<i32, Vec<EntityStatUpdate>>,
-			opt(10) entity_effect_updates: Vec<EntityEffectUpdate>,
-			opt(11) interactions: HashMap<InteractionType, i32>,
-			opt(13) sound_event_ids: Vec<i32>,
-			opt(14) interaction_hint: String,
-			opt(16) active_animations: BitOptionVec<String>,
+			opt(0, 1) nameplate: Nameplate,
+			opt(0, 2) entity_ui_components: Vec<i32>,
+			opt(0, 4) combat_text_update: CombatTextUpdate,
+			opt(0, 8) model: Model,
+			opt(0, 16) skin: setup::PlayerSkin,
+			opt(0, 32) item: ItemWithAllMetadata,
+			opt(0, 64) equipment: Equipment,
+			opt(0, 128) entity_stat_updates: HashMap<i32, Vec<EntityStatUpdate>>,
+			opt(1, 4) entity_effect_updates: Vec<EntityEffectUpdate>,
+			opt(1, 8) interactions: HashMap<InteractionType, i32>,
+			opt(1, 32) sound_event_ids: Vec<i32>,
+			opt(1, 64) interaction_hint: String,
+			opt(2, 1) active_animations: BitOptionVec<String>,
 		}
 	}
 }
@@ -746,8 +763,8 @@ define_packet! {
 			required network_id: i32
 		}
 		variable {
-			opt removed: Vec<ComponentUpdateType>,
-			opt updates: Vec<ComponentUpdate>
+			opt(1) removed: Vec<ComponentUpdateType>,
+			opt(2) updates: Vec<ComponentUpdate>
 		}
 	}
 }
@@ -755,7 +772,9 @@ define_packet! {
 	ItemQuantity {
 		fixed {
 			required quantity: i32,
-			opt item_id: String,
+		}
+		variable {
+			opt(1) item_id: String,
 		}
 	}
 }
@@ -768,8 +787,8 @@ define_packet! { Vector3d { x: f64, y: f64, z: f64 } }
 define_packet! {
 	DamageCause {
 		variable {
-			opt id: String,
-			opt damage_text_color: String
+			opt(1) id: String,
+			opt(2) damage_text_color: String
 		}
 	}
 }
@@ -809,8 +828,10 @@ define_packet! { MouseButtonEvent {
 define_packet! {
 	MouseMotionEvent {
 		fixed {
-			opt relative_motion: Vector2i [pad=8],
-			opt mouse_button_type: Vec<MouseButtonType>,
+			opt(1) relative_motion: Vector2i,
+		}
+		variable {
+			opt(2) mouse_button_type: Vec<MouseButtonType>,
 		}
 	}
 }
@@ -818,8 +839,8 @@ define_packet! {
 	WorldInteraction {
 		fixed {
 			required entity_id: i32,
-			opt block_position: Vector3i [pad=12],
-			opt block_rotation: BlockRotation [pad=3],
+			opt(1) block_position: Vector3i,
+			opt(2) block_rotation: BlockRotation,
 		}
 	}
 }
@@ -920,8 +941,8 @@ define_enum! {
 
 define_packet! {
 	ExtraResources {
-		fixed {
-			opt resources: Vec<ItemQuantity>
+		variable {
+			opt(1) resources: Vec<ItemQuantity>
 		}
 	}
 }
@@ -967,8 +988,8 @@ define_enum! {
 define_packet! {
 	Transform {
 		fixed {
-			opt position: PositionF [pad=24],
-			opt orientation: DirectionF [pad=12],
+			opt(1) position: PositionF,
+			opt(2) orientation: DirectionF,
 		}
 	}
 }
@@ -978,10 +999,10 @@ define_packet! {
 			required objective_uuid: Uuid,
 		}
 		variable {
-			opt objective_title_key: String,
-			opt objective_description_key: String,
-			opt objective_line_id: String,
-			opt tasks: Vec<ObjectiveTask>
+			opt(1) objective_title_key: String,
+			opt(2) objective_description_key: String,
+			opt(4) objective_line_id: String,
+			opt(8) tasks: Vec<ObjectiveTask>
 		}
 	}
 }
@@ -990,7 +1011,9 @@ define_packet! {
 		fixed {
 			required current_completion: i32,
 			required completion_needed: i32,
-			opt task_description_key: String
+		}
+		variable {
+			opt(1) task_description_key: String
 		}
 	}
 }
@@ -1006,23 +1029,25 @@ define_packet! {
 	AudioCategory {
 		fixed {
 			required volume: f32,
-			opt id: String,
+		}
+		variable {
+			opt(1) id: String,
 		}
 	}
 }
 
 define_packet! {
 	BlockBreakingDecal {
-		fixed {
-			opt stage_textures: Vec<String>,
+		variable {
+			opt(1) stage_textures: Vec<String>,
 		}
 	}
 }
 
 define_packet! {
 	BlockGroup {
-		fixed {
-			opt names: Vec<String>,
+		variable {
+			opt(1) names: Vec<String>,
 		}
 	}
 }
@@ -1030,14 +1055,14 @@ define_packet! {
 define_packet! {
 	BlockParticleSet {
 		fixed {
-			opt(1) color: Color [pad=3],
+			opt(2) color: Color,
 			required scale: f32,
-			opt(2) position_offset: Vector3f [pad=12],
-			opt(3) rotation_offset: DirectionF [pad=12],
+			opt(4) position_offset: Vector3f,
+			opt(8) rotation_offset: DirectionF,
 		}
 		variable {
-			opt(0) id: String,
-			opt(4) particle_system_ids: HashMap<BlockParticleEvent, String>,
+			opt(1) id: String,
+			opt(16) particle_system_ids: HashMap<BlockParticleEvent, String>,
 		}
 	}
 }
@@ -1045,8 +1070,8 @@ define_packet! {
 define_packet! {
 	BlockSet {
 		variable {
-			opt name: String,
-			opt blocks: Vec<i32>
+			opt(1) name: String,
+			opt(2) blocks: Vec<i32>
 		}
 	}
 }
@@ -1068,11 +1093,11 @@ define_enum! {
 define_packet! {
 	BlockSoundSet {
 		fixed {
-			opt(2) move_in_repeat_range: FloatRange [pad=8],
+			opt(4) move_in_repeat_range: FloatRange,
 		}
 		variable {
-			opt(0) id: String,
-			opt(1) sound_event_indices: HashMap<BlockSoundEvent, i32>,
+			opt(1) id: String,
+			opt(2) sound_event_indices: HashMap<BlockSoundEvent, i32>,
 		}
 	}
 }
@@ -1122,7 +1147,9 @@ define_packet! {
 	ModelTexture {
 		fixed {
 			required weight: f32,
-			opt texture: String
+		}
+		variable {
+			opt(1) texture: String
 		}
 	}
 }
@@ -1184,10 +1211,10 @@ define_packet! {
 			required rotate: bool,
 		}
 		variable {
-			opt face_type: String,
-			opt self_face_type: String,
-			opt block_set_id: String,
-			opt filler: Vec<Vector3i>,
+			opt(1) face_type: String,
+			opt(2) self_face_type: String,
+			opt(4) block_set_id: String,
+			opt(8) filler: Vec<Vector3i>,
 		}
 	}
 }
@@ -1195,8 +1222,8 @@ define_packet! {
 define_packet! {
 	BlockFaceSupport {
 		variable {
-			opt face_type: String,
-			opt filler: Vec<Vector3i>,
+			opt(1) face_type: String,
+			opt(2) filler: Vec<Vector3i>,
 		}
 	}
 }
@@ -1207,12 +1234,12 @@ define_packet! {
 			required weight: f32,
 		}
 		variable {
-			opt top: String,
-			opt bottom: String,
-			opt front: String,
-			opt back: String,
-			opt left: String,
-			opt right: String,
+			opt(1) top: String,
+			opt(2) bottom: String,
+			opt(4) front: String,
+			opt(8) back: String,
+			opt(16) left: String,
+			opt(32) right: String,
 		}
 	}
 }
@@ -1292,9 +1319,9 @@ define_packet! {
 			required quality: i32,
 		}
 		variable {
-			opt gather_type: String,
-			opt item_id: String,
-			opt drop_list_id: String,
+			opt(1) gather_type: String,
+			opt(2) item_id: String,
+			opt(4) drop_list_id: String,
 		}
 	}
 }
@@ -1302,8 +1329,8 @@ define_packet! {
 define_packet! {
 	Harvesting {
 		variable {
-			opt item_id: String,
-			opt drop_list_id: String,
+			opt(1) item_id: String,
+			opt(2) drop_list_id: String,
 		}
 	}
 }
@@ -1314,8 +1341,8 @@ define_packet! {
 			required is_weapon_breakable: bool
 		}
 		variable {
-			opt item_id: String,
-			opt drop_list_id: String,
+			opt(1) item_id: String,
+			opt(2) drop_list_id: String,
 		}
 	}
 }
@@ -1323,9 +1350,9 @@ define_packet! {
 define_packet! {
 	BlockGathering {
 		variable {
-			opt breaking: BlockBreaking,
-			opt harvesting: Harvesting,
-			opt soft_block: SoftBlock,
+			opt(1) breaking: BlockBreaking,
+			opt(2) harvesting: Harvesting,
+			opt(4) soft_block: SoftBlock,
 		}
 	}
 }
@@ -1361,13 +1388,13 @@ define_packet! {
 define_packet! {
 	ModelDisplay {
 		fixed {
-			opt(2) translation: Vector3f [pad=12],
-			opt(3) rotation: Vector3f [pad=12],
-			opt(4) scale: Vector3f [pad=12],
+			opt(4) translation: Vector3f,
+			opt(8) rotation: Vector3f,
+			opt(16) scale: Vector3f,
 		}
 		variable {
-			opt(0) node: String,
-			opt(1) attach_to: String
+			opt(1) node: String,
+			opt(2) attach_to: String
 		}
 	}
 }
@@ -1375,16 +1402,16 @@ define_packet! {
 define_packet! {
 	RailPoint {
 		fixed {
-			opt point: Vector3f [pad=12],
-			opt normal: Vector3f [pad=12],
+			opt(1) point: Vector3f,
+			opt(2) normal: Vector3f,
 		}
 	}
 }
 
 define_packet! {
 	RailConfig {
-		fixed {
-			opt points: Vec<RailPoint>
+		variable {
+			opt(1) points: Vec<RailPoint>
 		}
 	}
 }
@@ -1393,7 +1420,9 @@ define_packet! {
 	BenchUpgradingRequirement {
 		fixed {
 			required time_seconds: f64,
-			opt material: Vec<MaterialQuantity>
+		}
+		variable {
+			opt(1) material: Vec<MaterialQuantity>
 		}
 	}
 }
@@ -1404,15 +1433,17 @@ define_packet! {
 			required crafting_time_reduction_modifier: f64,
 			required extra_input_slot: i32,
 			required extra_output_slot: i32,
-			opt bench_upgrade_requirement: BenchUpgradingRequirement
+		}
+		variable {
+			opt(1) bench_upgrade_requirement: BenchUpgradingRequirement
 		}
 	}
 }
 
 define_packet! {
 	Bench {
-		fixed {
-			opt bench_tier_levels: Vec<BenchTierLevel>,
+		variable {
+			opt(1) bench_tier_levels: Vec<BenchTierLevel>,
 		}
 	}
 }
@@ -1432,7 +1463,9 @@ define_packet! {
 			required corner_right_block_id: i32,
 			required inverted_corner_left_block_id: i32,
 			required inverted_corner_right_block_id: i32,
-			opt material_name: String,
+		}
+		variable {
+			opt(1) material_name: String,
 		}
 	}
 }
@@ -1444,9 +1477,9 @@ define_packet! {
 			required width: i32,
 		}
 		variable {
-			opt regular: StairConnectedBlockRuleSet,
-			opt hollow: StairConnectedBlockRuleSet,
-			opt material_name: String,
+			opt(1) regular: StairConnectedBlockRuleSet,
+			opt(2) hollow: StairConnectedBlockRuleSet,
+			opt(4) material_name: String,
 		}
 	}
 }
@@ -1457,15 +1490,14 @@ define_packet! {
 			required rule_set_type: ConnectedBlockRuleSetType,
 		}
 		variable {
-			opt stair: StairConnectedBlockRuleSet,
-			opt roof: RoofConnectedBlockRuleSet,
+			opt(1) stair: StairConnectedBlockRuleSet,
+			opt(2) roof: RoofConnectedBlockRuleSet,
 		}
 	}
 }
 
 define_packet! {
 	BlockType {
-		mask_size: 4
 		fixed {
 			required unknown: bool,
 			required draw_type: DrawType,
@@ -1484,42 +1516,42 @@ define_packet! {
 			required rotation_yaw_placement_offset: Rotation,
 			required block_sound_set_index: i32,
 			required ambient_sound_event_index: i32,
-			opt(13) particle_color: Color [pad=3],
-			opt(14) light: ColorLight [pad=4],
-			opt(15) tint: Tint [pad=24],
-			opt(16) biome_tint: Tint [pad=24],
+			opt(1, 32) particle_color: Color,
+			opt(1, 64) light: ColorLight,
+			opt(1, 128) tint: Tint,
+			opt(2, 1) biome_tint: Tint,
 			required group: i32,
-			opt(19) movement_settings: BlockMovementSettings [pad=42],
-			opt(20) flags: BlockFlags [pad=2],
-			opt(23) placement_settings: BlockPlacementSettings [pad=15],
+			opt(2, 8) movement_settings: BlockMovementSettings,
+			opt(2, 16) flags: BlockFlags,
+			opt(2, 128) placement_settings: BlockPlacementSettings,
 			required ignore_support_when_placed: bool,
 			required transition_to_tag: i32,
 		}
 		variable {
-			opt(0) item: String,
-			opt(1) name: String,
-			opt(2) shader_effect: Vec<ShaderType>,
-			opt(3) model: String,
-			opt(4) model_texture: Vec<ModelTexture>,
-			opt(5) model_animation: String,
-			opt(6) support: HashMap<BlockNeighbor, Vec<RequiredBlockFaceSupport>>,
-			opt(7) supporting: HashMap<BlockNeighbor, Vec<BlockFaceSupport>>,
-			opt(8) cube_textures: Vec<BlockTextures>,
-			opt(9) cube_side_mask_texture: String,
-			opt(10) particles: Vec<ModelParticle>,
-			opt(11) block_particle_set_id: String,
-			opt(12) block_breaking_decal_id: String,
-			opt(17) transition_texture: String,
-			opt(18) transition_to_groups: Vec<i32>,
-			opt(21) interaction_hint: String,
-			opt(22) gathering: BlockGathering,
-			opt(24) display: ModelDisplay,
-			opt(25) rail: RailConfig,
-			opt(26) interactions: HashMap<InteractionType, i32>,
-			opt(27) states: HashMap<String, i32>,
-			opt(28) tag_indexes: Vec<i32>,
-			opt(29) bench: Bench,
-			opt(30) connected_block_rule_set: ConnectedBlockRuleSet,
+			opt(0, 1) item: String,
+			opt(0, 2) name: String,
+			opt(0, 4) shader_effect: Vec<ShaderType>,
+			opt(0, 8) model: String,
+			opt(0, 16) model_texture: Vec<ModelTexture>,
+			opt(0, 32) model_animation: String,
+			opt(0, 64) support: HashMap<BlockNeighbor, Vec<RequiredBlockFaceSupport>>,
+			opt(0, 128) supporting: HashMap<BlockNeighbor, Vec<BlockFaceSupport>>,
+			opt(1, 1) cube_textures: Vec<BlockTextures>,
+			opt(1, 2) cube_side_mask_texture: String,
+			opt(1, 4) particles: Vec<ModelParticle>,
+			opt(1, 8) block_particle_set_id: String,
+			opt(1, 16) block_breaking_decal_id: String,
+			opt(2, 2) transition_texture: String,
+			opt(2, 4) transition_to_groups: Vec<i32>,
+			opt(2, 32) interaction_hint: String,
+			opt(2, 64) gathering: BlockGathering,
+			opt(3, 1) display: ModelDisplay,
+			opt(3, 2) rail: RailConfig,
+			opt(3, 4) interactions: HashMap<InteractionType, i32>,
+			opt(3, 8) states: HashMap<String, i32>,
+			opt(3, 16) tag_indexes: Vec<i32>,
+			opt(3, 32) bench: Bench,
+			opt(3, 64) connected_block_rule_set: ConnectedBlockRuleSet,
 		}
 	}
 }
@@ -1592,7 +1624,7 @@ define_packet! {
 			required noise_type: NoiseType,
 			required frequency: f32,
 			required amplitude: f32,
-			opt clamp: ClampConfig,
+			opt(1) clamp: ClampConfig,
 		}
 	}
 }
@@ -1600,9 +1632,9 @@ define_packet! {
 define_packet! {
 	OffsetNoise {
 		variable {
-			opt x: Vec<NoiseConfig>,
-			opt y: Vec<NoiseConfig>,
-			opt z: Vec<NoiseConfig>,
+			opt(1) x: Vec<NoiseConfig>,
+			opt(2) y: Vec<NoiseConfig>,
+			opt(4) z: Vec<NoiseConfig>,
 		}
 	}
 }
@@ -1610,9 +1642,9 @@ define_packet! {
 define_packet! {
 	RotationNoise {
 		variable {
-			opt pitch: Vec<NoiseConfig>,
-			opt yaw: Vec<NoiseConfig>,
-			opt roll: Vec<NoiseConfig>,
+			opt(1) pitch: Vec<NoiseConfig>,
+			opt(2) yaw: Vec<NoiseConfig>,
+			opt(4) roll: Vec<NoiseConfig>,
 		}
 	}
 }
@@ -1623,12 +1655,12 @@ define_packet! {
 			required duration: f32,
 			required start_time: f32,
 			required continuous: bool,
-			opt ease_in: EasingConfig [pad=5],
-			opt ease_out: EasingConfig [pad=5],
+			opt(1) ease_in: EasingConfig,
+			opt(2) ease_out: EasingConfig,
 		}
 		variable {
-			opt offset: OffsetNoise,
-			opt rotation: RotationNoise,
+			opt(4) offset: OffsetNoise,
+			opt(8) rotation: RotationNoise,
 		}
 	}
 }
@@ -1636,8 +1668,8 @@ define_packet! {
 define_packet! {
 	CameraShake {
 		variable {
-			opt first_person: CameraShakeConfig,
-			opt third_person: CameraShakeConfig,
+			opt(1) first_person: CameraShakeConfig,
+			opt(2) third_person: CameraShakeConfig,
 		}
 	}
 }
@@ -1656,32 +1688,31 @@ define_packet! {
 
 define_packet! {
 	AbilityEffects {
-		fixed {
-			opt disabled: Vec<InteractionType>
+		variable {
+			opt(1) disabled: Vec<InteractionType>
 		}
 	}
 }
 
 define_packet! {
 	ApplicationEffects {
-		mask_size: 2
 		fixed {
-			opt(0) entity_bottom_tint: Color [pad=3],
-			opt(1) entity_top_tint: Color [pad=3],
+			opt(0, 1) entity_bottom_tint: Color,
+			opt(0, 2) entity_top_tint: Color,
 			required horizontal_speed_multiplier: f32,
 			required sound_event_index_local: i32,
 			required sound_event_index_world: i32,
-			opt(7) movement_effects: MovementEffects [pad=7],
+			opt(0, 128) movement_effects: MovementEffects,
 			required mouse_sensitivity_adjustment_target: f32,
 			required mouse_sensitivity_adjustment_duration: f32,
 		}
 		variable {
-			opt(2) entity_animation_id: String,
-			opt(3) particles: Vec<ModelParticle>,
-			opt(4) first_person_particles: Vec<ModelParticle>,
-			opt(5) screen_effect: String,
-			opt(6) model_vfx_id: String,
-			opt(8) ability_effects: AbilityEffects,
+			opt(0, 4) entity_animation_id: String,
+			opt(0, 8) particles: Vec<ModelParticle>,
+			opt(0, 16) first_person_particles: Vec<ModelParticle>,
+			opt(0, 32) screen_effect: String,
+			opt(0, 64) model_vfx_id: String,
+			opt(1, 1) ability_effects: AbilityEffects,
 		}
 	}
 }
@@ -1689,9 +1720,9 @@ define_packet! {
 define_packet! {
 	ModelOverride {
 		variable {
-			opt model: String,
-			opt texture: String,
-			opt animation_sets: HashMap<String, AnimationSet>
+			opt(1) model: String,
+			opt(2) texture: String,
+			opt(4) animation_sets: HashMap<String, AnimationSet>
 		}
 	}
 }
@@ -1724,12 +1755,12 @@ define_packet! {
 			required value_type: ValueType,
 		}
 		variable {
-			opt id: String,
-			opt name: String,
-			opt application_effects: ApplicationEffects,
-			opt model_override: ModelOverride,
-			opt status_effect_icon: String,
-			opt stat_modifiers: HashMap<i32, f32>,
+			opt(1) id: String,
+			opt(2) name: String,
+			opt(4) application_effects: ApplicationEffects,
+			opt(8) model_override: ModelOverride,
+			opt(16) status_effect_icon: String,
+			opt(32) stat_modifiers: HashMap<i32, f32>,
 		}
 	}
 }
@@ -1739,7 +1770,9 @@ define_packet! {
 		fixed {
 			required trigger_at_zero: bool,
 			required sound_event_index: i32,
-			opt particles: Vec<ModelParticle>
+		}
+		variable {
+			opt(1) particles: Vec<ModelParticle>
 		}
 	}
 }
@@ -1760,9 +1793,9 @@ define_packet! {
 			required reset_behavior: EntityStatResetBehavior,
 		}
 		variable {
-			opt id: String,
-			opt min_value_effects: EntityStatEffects,
-			opt max_value_effects: EntityStatEffects,
+			opt(1) id: String,
+			opt(2) min_value_effects: EntityStatEffects,
+			opt(4) max_value_effects: EntityStatEffects,
 		}
 	}
 }
@@ -1790,7 +1823,7 @@ define_packet! {
 			required end_at: f32,
 			required start_scale: f32,
 			required end_scale: f32,
-			opt position_offset: Vector2f [pad=8],
+			opt(1) position_offset: Vector2f,
 			required start_opacity: f32,
 			required end_opacity: f32,
 		}
@@ -1801,16 +1834,18 @@ define_packet! {
 	EntityUIComponent {
 		fixed {
 			required entity_ui_type: EntityUIType,
-			opt hitbox_offset: Vector2f [pad=8],
+			opt(1) hitbox_offset: Vector2f,
 			required unknown: bool,
 			required entity_stat_index: i32,
-			opt combat_text_random_position_offset_range: RangeVector2f [pad=17],
+			opt(2) combat_text_random_position_offset_range: RangeVector2f,
 			required combat_text_viewport_margin: f32,
 			required combat_text_duration: f32,
 			required combat_text_hit_angle_modifier_strength: f32,
 			required combat_text_font_size: f32,
-			opt combat_text_color: Color [pad=3],
-			opt combat_text_animation_events: Vec<CombatTextEntityUIComponentAnimationEvent> // This has no padding
+			opt(4) combat_text_color: Color,
+		}
+		variable {
+			opt(8) combat_text_animation_events: Vec<CombatTextEntityUIComponentAnimationEvent>
 		}
 	}
 }
@@ -1818,9 +1853,11 @@ define_packet! {
 define_packet! {
 	FluidParticle {
 		fixed {
-			opt(1) color: Color [pad=3],
+			opt(2) color: Color,
 			required scale: f32,
-			opt(0) system_id: String
+		}
+		variable {
+			opt(1) system_id: String
 		}
 	}
 }
@@ -1828,12 +1865,12 @@ define_packet! {
 define_packet! {
 	WorldEnvironment {
 		fixed {
-			opt(1) water_tint: Color [pad=3],
+			opt(2) water_tint: Color,
 		}
 		variable {
-			opt(0) id: String,
-			opt(2) fluid_particles: HashMap<i32, FluidParticle>,
-			opt(3) tag_indexes: Vec<i32>,
+			opt(1) id: String,
+			opt(4) fluid_particles: HashMap<i32, FluidParticle>,
+			opt(8) tag_indexes: Vec<i32>,
 		}
 	}
 }
@@ -1851,7 +1888,9 @@ define_packet! {
 			required high_mid_width: f32,
 			required high_gain: f32,
 			required high_cut_off: f32,
-			opt id: String
+		}
+		variable {
+			opt(1) id: String
 		}
 	}
 }
@@ -1871,10 +1910,10 @@ define_packet! {
 			required info_display_mode: ItemGridInfoDisplayMode,
 		}
 		variable {
-			opt id: String,
-			opt name: String,
-			opt icon: String,
-			opt children: Vec<ItemCategory>
+			opt(1) id: String,
+			opt(2) name: String,
+			opt(4) icon: String,
+			opt(8) children: Vec<ItemCategory>
 		}
 	}
 }
@@ -1910,19 +1949,19 @@ define_packet! {
 		fixed {
 			required shader: ShaderType,
 			required fog_mode: FluidFog,
-			opt(1) fog_color: Color [pad=3],
-			opt(2) fog_distance: NearFar [pad=8],
+			opt(2) fog_color: Color,
+			opt(4) fog_distance: NearFar,
 			required fog_depth_start: f32,
 			required fog_depth_falloff: f32,
-			opt(3) color_filter: Color [pad=3],
+			opt(8) color_filter: Color,
 			required color_saturation: f32,
 			required distortion_amplitude: f32,
 			required distortion_frequency: f32,
-			opt(5) movement_settings: FluidFXMovementSettings [pad=24],
+			opt(32) movement_settings: FluidFXMovementSettings,
 		}
 		variable {
-			opt(0) id: String,
-			opt(4) particle: FluidParticle,
+			opt(1) id: String,
+			opt(16) particle: FluidParticle,
 		}
 	}
 }
@@ -1933,17 +1972,17 @@ define_packet! {
 			required max_fluid_level: i32,
 			required requires_alpha_blending: bool,
 			required opacity: Opacity,
-			opt(3) light: ColorLight [pad=4],
+			opt(8) light: ColorLight,
 			required fluid_fx_index: i32,
 			required block_sound_set_index: i32,
-			opt(5) particle_color: Color [pad=3],
+			opt(32) particle_color: Color,
 		}
 		variable {
-			opt(0) id: String,
-			opt(1) cube_textures: Vec<BlockTextures>,
-			opt(2) shader_effect: Vec<ShaderType>,
-			opt(4) block_particle_set_id: String,
-			opt(6) tag_indexes: Vec<i32>,
+			opt(1) id: String,
+			opt(2) cube_textures: Vec<BlockTextures>,
+			opt(4) shader_effect: Vec<ShaderType>,
+			opt(16) block_particle_set_id: String,
+			opt(64) tag_indexes: Vec<i32>,
 		}
 	}
 }
@@ -1980,10 +2019,10 @@ define_packet! {
 define_packet! {
 	ItemPullbackConfiguration {
 		fixed {
-			opt left_offset_override: Vector3f [pad=12],
-			opt left_rotation_override: Vector3f [pad=12],
-			opt right_offset_override: Vector3f [pad=12],
-			opt right_rotation_override: Vector3f [pad=12],
+			opt(1) left_offset_override: Vector3f,
+			opt(2) left_rotation_override: Vector3f,
+			opt(4) right_offset_override: Vector3f,
+			opt(8) right_rotation_override: Vector3f,
 		}
 	}
 }
@@ -1998,11 +2037,11 @@ define_packet! {
 			required clips_geometry: bool,
 		}
 		variable {
-			opt third_person: String,
-			opt third_person_moving: String,
-			opt third_person_face: String,
-			opt first_person: String,
-			opt first_person_override: String,
+			opt(1) third_person: String,
+			opt(2) third_person_moving: String,
+			opt(4) third_person_face: String,
+			opt(8) first_person: String,
+			opt(16) first_person_override: String,
 		}
 	}
 }
@@ -2010,14 +2049,14 @@ define_packet! {
 define_packet! {
 	ItemPlayerAnimations {
 		fixed {
-			opt(2) wiggle_weights: WiggleWeights [pad=40],
-			opt(4) pullback_config: ItemPullbackConfiguration [pad=49],
+			opt(4) wiggle_weights: WiggleWeights,
+			opt(16) pullback_config: ItemPullbackConfiguration,
 			required use_first_person_override: bool
 		}
 		variable {
-			opt(0) id: String,
-			opt(1) animations: HashMap<String, ItemAnimation>,
-			opt(3) camera: CameraSettings
+			opt(1) id: String,
+			opt(2) animations: HashMap<String, ItemAnimation>,
+			opt(8) camera: CameraSettings
 		}
 	}
 }
@@ -2025,19 +2064,19 @@ define_packet! {
 define_packet! {
 	ItemQuality {
 		fixed {
-			opt(6) text_color: Color [pad=3],
+			opt(64) text_color: Color,
 			required visible_quality_label: bool,
 			required render_special_slot: bool,
 			required hide_from_search: bool,
 		}
 		variable {
-			opt(0) id: String,
-			opt(1) item_tooltip_texture: String,
-			opt(2) item_tooltip_arrow_texture: String,
-			opt(3) slot_texture: String,
-			opt(4) block_slot_texture: String,
-			opt(5) special_slot_texture: String,
-			opt(7) localization_key: String
+			opt(1) id: String,
+			opt(2) item_tooltip_texture: String,
+			opt(4) item_tooltip_arrow_texture: String,
+			opt(8) slot_texture: String,
+			opt(16) block_slot_texture: String,
+			opt(32) special_slot_texture: String,
+			opt(128) localization_key: String
 		}
 	}
 }
@@ -2047,7 +2086,9 @@ define_packet! {
 		fixed {
 			required hide_base: bool,
 			required duration: f32,
-			opt parts: Vec<String>
+		}
+		variable {
+			opt(1) parts: Vec<String>
 		}
 	}
 }
@@ -2065,10 +2106,10 @@ define_enum! {
 define_packet! {
 	ItemReticleConfig {
 		variable {
-			opt id: String,
-			opt base: Vec<String>,
-			opt server_events: HashMap<i32, ItemReticle>,
-			opt client_events: HashMap<ItemReticleClientEvent, ItemReticle>,
+			opt(1) id: String,
+			opt(2) base: Vec<String>,
+			opt(4) server_events: HashMap<i32, ItemReticle>,
+			opt(8) client_events: HashMap<ItemReticleClientEvent, ItemReticle>,
 		}
 	}
 }
@@ -2077,8 +2118,8 @@ define_packet! {
 	AssetIconProperties {
 		fixed {
 			required scale: f32,
-			opt translation: Vector2f [pad=8],
-			opt rotation: Vector3f [pad=12],
+			opt(1) translation: Vector2f,
+			opt(2) rotation: Vector3f,
 		}
 	}
 }
@@ -2086,8 +2127,8 @@ define_packet! {
 define_packet! {
 	ItemTranslationProperties {
 		variable {
-			opt name: String,
-			opt description: String,
+			opt(1) name: String,
+			opt(2) description: String,
 		}
 	}
 }
@@ -2096,7 +2137,9 @@ define_packet! {
 	ItemResourceType {
 		fixed {
 			required quantity: i32,
-			opt id: String
+		}
+		variable {
+			opt(1) id: String
 		}
 	}
 }
@@ -2106,7 +2149,9 @@ define_packet! {
 		fixed {
 			required power: f32,
 			required quality: i32,
-			opt gather_type: String
+		}
+		variable {
+			opt(1) gather_type: String
 		}
 	}
 }
@@ -2115,7 +2160,9 @@ define_packet! {
 	ItemTool {
 		fixed {
 			required speed: f32,
-			opt specs: Vec<ItemToolSpec>
+		}
+		variable {
+			opt(1) specs: Vec<ItemToolSpec>
 		}
 	}
 }
@@ -2126,8 +2173,8 @@ define_packet! {
 			required render_dual_wielded: bool,
 		}
 		variable {
-			opt entity_stats_to_clear: Vec<i32>,
-			opt stat_modifiers: HashMap<i32, Vec<Modifier>>
+			opt(1) entity_stats_to_clear: Vec<i32>,
+			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>
 		}
 	}
 }
@@ -2166,11 +2213,11 @@ define_packet! {
 			required base_damage_resistance: i32,
 		}
 		variable {
-			opt cosmetics_to_hide: Vec<Cosmetic>,
-			opt stat_modifiers: HashMap<i32, Vec<Modifier>>,
-			opt damage_resistance: HashMap<i32, Vec<Modifier>>,
-			opt damage_enhancement: HashMap<i32, Vec<Modifier>>,
-			opt damage_class_enhancement: HashMap<i32, Vec<Modifier>>,
+			opt(1) cosmetics_to_hide: Vec<Cosmetic>,
+			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>,
+			opt(4) damage_resistance: HashMap<i32, Vec<Modifier>>,
+			opt(8) damage_enhancement: HashMap<i32, Vec<Modifier>>,
+			opt(16) damage_class_enhancement: HashMap<i32, Vec<Modifier>>,
 		}
 	}
 }
@@ -2191,8 +2238,8 @@ define_packet! {
 			required compatible: bool
 		}
 		variable {
-			opt entity_stats_to_clear: Vec<i32>,
-			opt stat_modifiers: HashMap<i32, Vec<Modifier>>
+			opt(1) entity_stats_to_clear: Vec<i32>,
+			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>
 		}
 	}
 }
@@ -2206,8 +2253,8 @@ define_packet! {
 define_packet! {
 	ItemBuilderToolData {
 		variable {
-			opt ui: Vec<String>,
-			opt tools: Vec<BuilderToolState>
+			opt(1) ui: Vec<String>,
+			opt(2) tools: Vec<BuilderToolState>
 		}
 	}
 }
@@ -2215,9 +2262,11 @@ define_packet! {
 define_packet! {
 	ItemEntityConfig {
 		fixed {
-			opt(1) particle_color: Color [pad=3],
+			opt(2) particle_color: Color,
 			required show_item_particles: bool,
-			opt(0) particle_system_id: String
+		}
+		variable {
+			opt(1) particle_system_id: String
 		}
 	}
 }
@@ -2232,8 +2281,8 @@ define_enum! {
 
 define_packet! {
 	InteractionPriority {
-		fixed {
-			opt values: HashMap<PrioritySlot, i32>
+		variable {
+			opt(1) values: HashMap<PrioritySlot, i32>
 		}
 	}
 }
@@ -2246,8 +2295,8 @@ define_packet! {
 			required all_entities: bool,
 		}
 		variable {
-			opt use_distance: HashMap<GameMode, f32>,
-			opt priorities: HashMap<InteractionType, InteractionPriority>
+			opt(1) use_distance: HashMap<GameMode, f32>,
+			opt(2) priorities: HashMap<InteractionType, InteractionPriority>
 		}
 	}
 }
@@ -2255,72 +2304,71 @@ define_packet! {
 define_packet! {
 	ItemAppearanceCondition {
 		fixed {
-			opt(5) condition: FloatRange [pad=8],
+			opt(32) condition: FloatRange,
 			required condition_value_type: ValueType,
 			required local_sound_event_id: i32,
 			required world_sound_event_id: i32,
 		}
 		variable {
-			opt(0) particles: Vec<ModelParticle>,
-			opt(1) first_person_particles: Vec<ModelParticle>,
-			opt(2) model: String,
-			opt(3) texture: String,
-			opt(4) model_vfx_id: String,
+			opt(1) particles: Vec<ModelParticle>,
+			opt(2) first_person_particles: Vec<ModelParticle>,
+			opt(4) model: String,
+			opt(8) texture: String,
+			opt(16) model_vfx_id: String,
 		}
 	}
 }
 
 define_packet! {
 	ItemBase {
-		mask_size: 4
 		fixed {
 			required scale: f32,
 			required use_player_animations: bool,
 			required max_stack: i32,
 			required reticle_index: i32,
-			opt(6) icon_properties: AssetIconProperties [pad=25],
+			opt(0, 64) icon_properties: AssetIconProperties,
 			required item_level: i32,
 			required quality_index: i32,
 			required consumable: bool,
 			required variant: bool,
 			required block_id: i32,
-			opt(12) glider_config: ItemGlider [pad=16],
-			opt(14) block_selector_tool: BlockSelectorToolData [pad=4],
-			opt(22) light: ColorLight [pad=4],
+			opt(1, 16) glider_config: ItemGlider,
+			opt(1, 64) block_selector_tool: BlockSelectorToolData,
+			opt(2, 64) light: ColorLight,
 			required durability: f64,
 			required sound_event_index: i32,
 			required item_sound_set_index: i32,
-			opt(30) pullback_config: ItemPullbackConfiguration [pad=49],
+			opt(3, 64) pullback_config: ItemPullbackConfiguration,
 			required clips_geometry: bool,
 			required render_deployable_preview: bool,
 		}
 		variable {
-			opt(0) id: String,
-			opt(1) model: String,
-			opt(2) texture: String,
-			opt(3) animation: String,
-			opt(4) player_animations_id: String,
-			opt(5) icon: String,
-			opt(7) appearance_conditions: Vec<ItemAppearanceCondition>,
-			opt(8) resource_types: Vec<ItemResourceType>,
-			opt(9) tool: ItemTool,
-			opt(10) weapon: ItemWeapon,
-			opt(11) armor: ItemArmor,
-			opt(13) utility: ItemUtility,
-			opt(15) builder_tool_data: ItemBuilderToolData,
-			opt(16) item_entity: ItemEntityConfig,
-			opt(17) set: String,
-			opt(18) categories: Vec<String>,
-			opt(19) particles: Vec<ModelParticle>,
-			opt(20) first_person_particles: Vec<ModelParticle>,
-			opt(21) trails: Vec<ModelTrail>,
-			opt(23) interactions: HashMap<InteractionType, i32>,
-			opt(24) interaction_vars: HashMap<String, i32>,
-			opt(25) interaction_config: InteractionConfiguration,
-			opt(26) dropped_item_animation: String,
-			opt(27) tag_indexes: Vec<i32>,
-			opt(28) item_appearance_conditions: HashMap<i32, Vec<ItemAppearanceCondition>>,
-			opt(29) display_entity_stats_hud: Vec<i32>,
+			opt(0, 1) id: String,
+			opt(0, 2) model: String,
+			opt(0, 4) texture: String,
+			opt(0, 8) animation: String,
+			opt(0, 16) player_animations_id: String,
+			opt(0, 32) icon: String,
+			opt(0, 128) appearance_conditions: Vec<ItemAppearanceCondition>,
+			opt(1, 1) resource_types: Vec<ItemResourceType>,
+			opt(1, 2) tool: ItemTool,
+			opt(1, 4) weapon: ItemWeapon,
+			opt(1, 8) armor: ItemArmor,
+			opt(1, 32) utility: ItemUtility,
+			opt(1, 128) builder_tool_data: ItemBuilderToolData,
+			opt(2, 1) item_entity: ItemEntityConfig,
+			opt(2, 2) set: String,
+			opt(2, 4) categories: Vec<String>,
+			opt(2, 8) particles: Vec<ModelParticle>,
+			opt(2, 16) first_person_particles: Vec<ModelParticle>,
+			opt(2, 32) trails: Vec<ModelTrail>,
+			opt(2, 128) interactions: HashMap<InteractionType, i32>,
+			opt(3, 1) interaction_vars: HashMap<String, i32>,
+			opt(3, 2) interaction_config: InteractionConfiguration,
+			opt(3, 4) dropped_item_animation: String,
+			opt(3, 8) tag_indexes: Vec<i32>,
+			opt(3, 16) item_appearance_conditions: HashMap<i32, Vec<ItemAppearanceCondition>>,
+			opt(3, 32) display_entity_stats_hud: Vec<i32>,
 		}
 	}
 }
@@ -2335,8 +2383,8 @@ define_enum! {
 define_packet! {
 	ItemSoundSet {
 		variable {
-			opt id: String,
-			opt sound_event_indices: HashMap<ItemSoundEvent, i32>
+			opt(1) id: String,
+			opt(2) sound_event_indices: HashMap<ItemSoundEvent, i32>
 		}
 	}
 }
@@ -2383,18 +2431,20 @@ define_packet! {
 			required switch_to: SwitchTo,
 			required effect_direction: EffectDirection,
 			required animation_duration: f32,
-			opt(1) animation_range: Vector2f [pad=8],
+			opt(2) animation_range: Vector2f,
 			required loop_option: LoopOption,
 			required curve_type: CurveType,
-			opt(2) highlight_color: Color [pad=3],
+			opt(4) highlight_color: Color,
 			required highlight_thickness: f32,
 			required use_bloom_on_highlight: bool,
 			required use_progessive_highlight: bool,
-			opt(3) noise_scale: Vector2f [pad=8],
-			opt(4) noise_scroll_speed: Vector2f [pad=8],
-			opt(5) post_color: Color [pad=3],
+			opt(8) noise_scale: Vector2f,
+			opt(16) noise_scroll_speed: Vector2f,
+			opt(32) post_color: Color,
 			required post_color_opacity: f32,
-			opt(0) id: String
+		}
+		variable {
+			opt(1) id: String
 		}
 
 	}
@@ -2410,9 +2460,9 @@ define_enum! {
 define_packet! {
 	InitialVelocity {
 		fixed {
-			opt yaw: RangeF [pad=8],
-			opt pitch: RangeF [pad=8],
-			opt speed: RangeF [pad=8],
+			opt(1) yaw: RangeF,
+			opt(2) pitch: RangeF,
+			opt(4) speed: RangeF,
 		}
 	}
 }
@@ -2484,7 +2534,9 @@ define_packet! {
 			required scale: f32,
 			required strength: f32,
 			required strength_curve_type: UVMotionCurveType,
-			opt texture: String,
+		}
+		variable {
+			opt(1) texture: String,
 		}
 	}
 }
@@ -2492,17 +2544,17 @@ define_packet! {
 define_packet! {
 	ParticleAttractor {
 		fixed {
-			opt position: Vector3f [pad=12],
-			opt radial_axis: Vector3f [pad=12],
+			opt(1) position: Vector3f,
+			opt(2) radial_axis: Vector3f,
 			required trail_position_multiplier: f32,
 			required radius: f32,
 			required radial_acceleration: f32,
 			required radial_tangent_acceleration: f32,
-			opt linear_acceleration: Vector3f [pad=12],
+			opt(4) linear_acceleration: Vector3f,
 			required radial_impulse: f32,
 			required radial_tangent_impulse: f32,
-			opt linear_impulse: Vector3f [pad=12],
-			opt damping_multiplier: Vector3f [pad=12],
+			opt(8) linear_impulse: Vector3f,
+			opt(16) damping_multiplier: Vector3f,
 		}
 	}
 }
@@ -2511,7 +2563,7 @@ define_packet! {
 	IntersectionHighlight {
 		fixed {
 			required highlight_threshold: f32,
-			opt highlight_color: Color [pad=3],
+			opt(1) highlight_color: Color,
 		}
 	}
 }
@@ -2554,10 +2606,10 @@ define_enum! {
 define_packet! {
 	ParticleAnimationFrame {
 		fixed {
-			opt frame_index: RangeI [pad=8],
-			opt scale: RangeVector2f [pad=17],
-			opt rotation: RangeVector3f [pad=25],
-			opt color: Color [pad=3],
+			opt(1) frame_index: RangeI,
+			opt(2) scale: RangeVector2f,
+			opt(4) rotation: RangeVector3f,
+			opt(8) color: Color,
 			required opacity: f32,
 		}
 	}
@@ -2566,55 +2618,54 @@ define_packet! {
 define_packet! {
 	Particle {
 		fixed {
-			opt(1) frame_size: Size [pad=8],
+			opt(2) frame_size: Size,
 			required uv_option: ParticleUVOption,
 			required scale_ratio_constraint: ParticleScaleRatioConstraint,
 			required soft_particles: SoftParticle,
 			required soft_particles_fade_factor: f32,
 			required use_sprite_blending: bool,
-			opt(2) initial_animation_frame: ParticleAnimationFrame [pad=58],
-			opt(3) collision_animation_frame: ParticleAnimationFrame [pad=58],
+			opt(4) initial_animation_frame: ParticleAnimationFrame,
+			opt(8) collision_animation_frame: ParticleAnimationFrame,
 		}
 		variable {
-			opt(0) texture_path: String,
-			opt(4) animation_frames: HashMap<i32, ParticleAnimationFrame>,
+			opt(1) texture_path: String,
+			opt(16) animation_frames: HashMap<i32, ParticleAnimationFrame>,
 		}
 	}
 }
 
 define_packet! {
 	ParticleSpawner {
-		mask_size: 2
 		fixed {
 			required shape: EmitShape,
-			opt(2) emit_offset: RangeVector3f [pad=25],
+			opt(0, 4) emit_offset: RangeVector3f,
 			required camera_offset: f32,
 			required use_emit_direction: bool,
 			required life_span: f32,
-			opt(3) spawn_rate: RangeF [pad=8],
+			opt(0, 8) spawn_rate: RangeF,
 			required spawn_burst: bool,
-			opt(4) wave_delay: RangeF [pad=8],
-			opt(5) total_particles: RangeI [pad=8],
+			opt(0, 16) wave_delay: RangeF,
+			opt(0, 32) total_particles: RangeI,
 			required max_concurrent_particles: i32,
-			opt(6) initial_velocity: InitialVelocity [pad=25],
+			opt(0, 64) initial_velocity: InitialVelocity,
 			required velocity_stretch_multiplier: f32,
 			required particle_rotation_influence: ParticleRotationInfluence,
 			required particle_rotate_with_spawner: bool,
 			required is_low_res: bool,
 			required trail_spawner_position_multiplier: f32,
 			required trail_spawner_rotation_multiplier: f32,
-			opt(7) particle_collision: ParticleCollision [pad=3],
+			opt(0, 128) particle_collision: ParticleCollision,
 			required render_mode: FXRenderMode,
 			required light_influence: f32,
 			required linear_filtering: bool,
-			opt(8) particle_life_span: RangeF [pad=8],
-			opt(11) intersection_highlight: IntersectionHighlight [pad=8],
+			opt(1, 1) particle_life_span: RangeF,
+			opt(1, 8) intersection_highlight: IntersectionHighlight,
 		}
 		variable {
-			opt(0) id: String,
-			opt(1) particle: Particle,
-			opt(9) uv_motion: UVMotion,
-			opt(10) attractors: Vec<ParticleAttractor>,
+			opt(0, 1) id: String,
+			opt(0, 2) particle: Particle,
+			opt(1, 2) uv_motion: UVMotion,
+			opt(1, 4) attractors: Vec<ParticleAttractor>,
 		}
 
 	}
@@ -2622,23 +2673,22 @@ define_packet! {
 
 define_packet! {
 	ParticleSpawnerGroup {
-		mask_size: 2
 		fixed {
-			opt(1) position_offset: Vector3f [pad=12],
-			opt(2) rotation_offset: Vector3f [pad=12],
+			opt(0, 2) position_offset: Vector3f,
+			opt(0, 4) rotation_offset: Vector3f,
 			required fixed_rotation: bool,
 			required start_delay: f32,
-			opt(3) spawn_rate: RangeF [pad=8],
-			opt(4) wave_delay: RangeF [pad=8],
+			opt(0, 8) spawn_rate: RangeF,
+			opt(0, 16) wave_delay: RangeF,
 			required total_spawners: i32,
 			required max_concurrent: i32,
-			opt(5) initial_velocity: InitialVelocity [pad=25],
-			opt(6) emit_offset: RangeVector3f [pad=25],
-			opt(7) life_span: RangeF [pad=8],
+			opt(0, 32) initial_velocity: InitialVelocity,
+			opt(0, 64) emit_offset: RangeVector3f,
+			opt(0, 128) life_span: RangeF,
 		}
 		variable {
-			opt(0) spawner_id: String,
-			opt(8) attractors: Vec<ParticleAttractor>,
+			opt(0, 1) spawner_id: String,
+			opt(1, 1) attractors: Vec<ParticleAttractor>,
 		}
 	}
 }
@@ -2652,8 +2702,8 @@ define_packet! {
 			required is_important: bool,
 		}
 		variable {
-			opt id: String,
-			opt spawners: Vec<ParticleSpawnerGroup>,
+			opt(1) id: String,
+			opt(2) spawners: Vec<ParticleSpawnerGroup>,
 		}
 	}
 }
@@ -2703,16 +2753,16 @@ define_packet! {
 define_packet! {
 	ProjectileConfig {
 		fixed {
-			opt(0) physics_config: PhysicsConfig [pad=122],
+			opt(1) physics_config: PhysicsConfig,
 			required launch_force: f64,
-			opt(2) spawn_offset: Vector3f [pad=12],
-			opt(3) rotation_offset: DirectionF [pad=12],
+			opt(4) spawn_offset: Vector3f,
+			opt(8) rotation_offset: DirectionF,
 			required launch_local_sound_event_index: i32,
 			required projectile_sound_event_index: i32,
 		}
 		variable {
-			opt(1) model: Model,
-			opt(4) interactions: HashMap<InteractionType, i32>,
+			opt(2) model: Model,
+			opt(16) interactions: HashMap<InteractionType, i32>,
 		}
 	}
 }
@@ -2727,8 +2777,8 @@ define_packet! {
 define_packet! {
 	ResourceType {
 		variable {
-			opt id: String,
-			opt icon: String
+			opt(1) id: String,
+			opt(2) icon: String
 		}
 	}
 }
@@ -2750,7 +2800,9 @@ define_packet! {
 			required room_rolloff_factor: f32,
 			required air_absorption_high_frequency_gain: f32,
 			required limit_decay_high_frequency: bool,
-			opt id: String
+		}
+		variable {
+			opt(1) id: String
 		}
 	}
 }
@@ -2759,7 +2811,9 @@ define_packet! {
 	RootInteractionSettings {
 		fixed {
 			required allow_skip_chain_on_click: bool,
-			opt cooldown: InteractionCooldown
+		}
+		variable {
+			opt(1) cooldown: InteractionCooldown
 		}
 	}
 }
@@ -2771,12 +2825,12 @@ define_packet! {
 			required require_new_click: bool,
 		}
 		variable {
-			opt id: String,
-			opt interactions: Vec<i32>,
-			opt cooldown: InteractionCooldown,
-			opt settings: HashMap<GameMode, RootInteractionSettings>,
-			opt rules: InteractionRules,
-			opt tags: Vec<i32>,
+			opt(1) id: String,
+			opt(2) interactions: Vec<i32>,
+			opt(4) cooldown: InteractionCooldown,
+			opt(8) settings: HashMap<GameMode, RootInteractionSettings>,
+			opt(16) rules: InteractionRules,
+			opt(32) tags: Vec<i32>,
 		}
 	}
 }
@@ -2798,8 +2852,10 @@ define_packet! {
 			required probability: i32,
 			required probability_reroll_delay: f32,
 			required round_robin_history_size: i32,
-			opt random_settings: SoundEventLayerRandomSettings [pad=20],
-			opt files: Vec<String>
+			opt(1) random_settings: SoundEventLayerRandomSettings,
+		}
+		variable {
+			opt(2) files: Vec<String>
 		}
 	}
 }
@@ -2818,8 +2874,8 @@ define_packet! {
 			required audio_category: i32,
 		}
 		variable {
-			opt id: String,
-			opt layers: Vec<SoundEventLayer>,
+			opt(1) id: String,
+			opt(2) layers: Vec<SoundEventLayer>,
 		}
 	}
 }
@@ -2830,8 +2886,8 @@ define_packet! {
 			required category: SoundCategory
 		}
 		variable {
-			opt id: String,
-			opt sounds: HashMap<String, i32>,
+			opt(1) id: String,
+			opt(2) sounds: HashMap<String, i32>,
 		}
 	}
 }
@@ -2852,8 +2908,8 @@ define_packet! {
 			required tag_index: i32,
 		}
 		variable {
-			opt operands: Vec<TagPattern>,
-			opt not: Box<TagPattern>
+			opt(1) operands: Vec<TagPattern>,
+			opt(2) not: Box<TagPattern>
 		}
 	}
 }
@@ -2861,7 +2917,7 @@ define_packet! {
 define_packet! {
 	Edge {
 		fixed {
-			opt color: ColorAlpha [pad=4],
+			opt(1) color: ColorAlpha,
 			required width: f32
 		}
 	}
@@ -2872,19 +2928,19 @@ define_packet! {
 		fixed {
 			required life_span: i32,
 			required roll: f32,
-			opt(2) start: Edge [pad=9],
-			opt(3) end: Edge [pad=9],
+			opt(4) start: Edge,
+			opt(8) end: Edge,
 			required light_influence: f32,
 			required render_mode: FXRenderMode,
-			opt(4) intersection_highlight: IntersectionHighlight [pad=8],
+			opt(16) intersection_highlight: IntersectionHighlight,
 			required smooth: bool,
-			opt(5) frame_size: Size [pad=8],
-			opt(6) frame_range: RangeI [pad=8],
+			opt(32) frame_size: Size,
+			opt(64) frame_range: RangeI,
 			required frame_life_span: i32,
 		}
 		variable {
-			opt(0) id: String,
-			opt(1) texture: String
+			opt(1) id: String,
+			opt(2) texture: String
 		}
 	}
 }
@@ -2909,8 +2965,8 @@ define_enum! {
 
 define_packet! {
 	ViewBobbing {
-		fixed {
-			opt first_person: CameraShakeConfig
+		variable {
+			opt(1) first_person: CameraShakeConfig
 		}
 	}
 }
@@ -2929,9 +2985,9 @@ define_packet! {
 define_packet! {
 	Cloud {
 		variable {
-			opt texture: String,
-			opt speeds: HashMap<OrderedFloat<f32>, f32>,
-			opt colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
+			opt(1) texture: String,
+			opt(2) speeds: HashMap<OrderedFloat<f32>, f32>,
+			opt(4) colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
 		}
 	}
 }
@@ -2939,47 +2995,48 @@ define_packet! {
 define_packet! {
 	WeatherParticle {
 		fixed {
-			opt(1) color: Color [pad=3],
+			opt(2) color: Color,
 			required scale: f32,
 			required is_overground_only: bool,
 			required position_offset_multiplier: f32,
-			opt(0) system_id: String,
+		}
+		variable {
+			opt(1) system_id: String,
 		}
 	}
 }
 
 define_packet! {
 	Weather {
-		mask_size: 4
 		fixed {
-			opt(24) fog: NearFar [pad=8],
-			opt(25) fog_options: FogOptions [pad=18]
+			opt(3, 1) fog: NearFar,
+			opt(3, 2) fog_options: FogOptions
 		}
 		variable {
-			opt(0) id: String,
-			opt(1) tag_indexes: Vec<i32>,
-			opt(2) stars: String,
-			opt(3) moons: HashMap<i32, String>,
-			opt(4) clouds: Vec<Cloud>,
-			opt(5) sunlight_damping_multiplier: HashMap<OrderedFloat<f32>, f32>,
-			opt(6) sunlight_colors: HashMap<OrderedFloat<f32>, Color>,
-			opt(7) sky_top_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
-			opt(8) sky_bottom_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
-			opt(9) sky_sunset_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
-			opt(10) sun_colors:  HashMap<OrderedFloat<f32>, Color>,
-			opt(11) sun_scales: HashMap<OrderedFloat<f32>, f32>,
-			opt(12) sun_glow_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
-			opt(13) moon_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
-			opt(14) moon_scales: HashMap<OrderedFloat<f32>, f32>,
-			opt(15) moon_glow_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
-			opt(16) fog_colors: HashMap<OrderedFloat<f32>, Color>,
-			opt(17) fog_height_falloffs: HashMap<OrderedFloat<f32>, f32>,
-			opt(18) fog_densities: HashMap<OrderedFloat<f32>, f32>,
-			opt(19) screen_effect: String,
-			opt(20) screen_effect_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
-			opt(21) color_filters: HashMap<OrderedFloat<f32>, Color>,
-			opt(22) water_tints: HashMap<OrderedFloat<f32>, Color>,
-			opt(23) particle: WeatherParticle,
+			opt(0, 1) id: String,
+			opt(0, 2) tag_indexes: Vec<i32>,
+			opt(0, 4) stars: String,
+			opt(0, 8) moons: HashMap<i32, String>,
+			opt(0, 16) clouds: Vec<Cloud>,
+			opt(0, 32) sunlight_damping_multiplier: HashMap<OrderedFloat<f32>, f32>,
+			opt(0, 64) sunlight_colors: HashMap<OrderedFloat<f32>, Color>,
+			opt(0, 128) sky_top_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
+			opt(1, 1) sky_bottom_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
+			opt(1, 2) sky_sunset_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
+			opt(1, 4) sun_colors:  HashMap<OrderedFloat<f32>, Color>,
+			opt(1, 8) sun_scales: HashMap<OrderedFloat<f32>, f32>,
+			opt(1, 16) sun_glow_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
+			opt(1, 32) moon_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
+			opt(1, 64) moon_scales: HashMap<OrderedFloat<f32>, f32>,
+			opt(1, 128) moon_glow_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
+			opt(2, 1) fog_colors: HashMap<OrderedFloat<f32>, Color>,
+			opt(2, 2) fog_height_falloffs: HashMap<OrderedFloat<f32>, f32>,
+			opt(2, 4) fog_densities: HashMap<OrderedFloat<f32>, f32>,
+			opt(2, 8) screen_effect: String,
+			opt(2, 16) screen_effect_colors: HashMap<OrderedFloat<f32>, ColorAlpha>,
+			opt(2, 32) color_filters: HashMap<OrderedFloat<f32>, Color>,
+			opt(2, 64) water_tints: HashMap<OrderedFloat<f32>, Color>,
+			opt(2, 128) particle: WeatherParticle,
 		}
 	}
 }

@@ -2,11 +2,10 @@
 
 use bytes::Buf;
 use uuid::Uuid;
-
+use macros::define_packet;
 use crate::{
 	codec::FixedAscii,
 	define_enum,
-	define_packet,
 	v1::{
 		HostAddress,
 		InstantData,
@@ -28,11 +27,11 @@ define_packet! {
 			required uuid: Uuid,
 		}
 		variable {
-			opt language: String,
-			opt identity_token: String,
+			opt(1) language: String,
+			opt(2) identity_token: String,
 			required username: String,
-			opt referral_data: Vec<u8>,
-			opt referral_source: HostAddress
+			opt(4) referral_data: Vec<u8>,
+			opt(8) referral_source: HostAddress
 		}
 	}
 }
@@ -48,7 +47,9 @@ define_packet! {
 	Disconnect {
 		fixed {
 			required disconnect_type: DisconnectType,
-			opt reason: String
+		}
+		variable {
+			opt(1) reason: String
 		}
 	}
 }
@@ -57,7 +58,7 @@ define_packet! {
 	Ping {
 		fixed {
 			required id: i32,
-			opt time: InstantData [pad=12],
+			opt(1) time: InstantData,
 			required last_ping_raw: i32,
 			required last_ping_direct: i32,
 			required last_ping_tick: i32,
@@ -77,7 +78,7 @@ define_packet! {
 	Pong {
 		fixed {
 			required id: i32,
-			opt time: InstantData [pad=12],
+			opt(1) time: InstantData,
 			required pong_type: PongType,
 			required packet_queue_size: i16,
 		}

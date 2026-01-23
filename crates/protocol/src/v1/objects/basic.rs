@@ -1,4 +1,4 @@
-use crate::define_packet;
+use macros::define_packet;
 
 define_packet! { InstantData { seconds: i64, nanos: i32 } }
 
@@ -20,8 +20,8 @@ define_packet! { FloatRange { inclusive_min: f32, inclusive_max: f32 } }
 define_packet! {
 	RangeVector2f {
 		fixed {
-			opt x: RangeF [pad=8],
-			opt y: RangeF [pad=8],
+			opt(1) x: RangeF,
+			opt(2) y: RangeF,
 		}
 	}
 }
@@ -29,9 +29,9 @@ define_packet! {
 define_packet! {
 	RangeVector3f {
 		fixed {
-			opt x: RangeF [pad=8],
-			opt y: RangeF [pad=8],
-			opt z: RangeF [pad=8],
+			opt(1) x: RangeF,
+			opt(2) y: RangeF,
+			opt(4) z: RangeF,
 		}
 	}
 }

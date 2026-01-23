@@ -51,10 +51,11 @@ hex = "0.4"
 ordered-float = "5.1"
 
 # Internal crate references
+command = { path = "crates/command" }
+macros= { path = "crates/macros" }
+net = { path = "crates/net" }
 protocol = { path = "crates/protocol" }
 world = { path = "crates/world" }
-net = { path = "crates/net" }
-command = { path = "crates/command" }
 
 
 

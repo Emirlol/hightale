@@ -1,48 +1,44 @@
+use macros::define_packet;
 use uuid::Uuid;
 
-use crate::{
-	define_packet,
-	v1::{
-		BlockRotation,
-		DamageCause,
-		DebugShape,
-		DirectionF,
-		GameMode,
-		HalfFloatPosition,
-		ModelTransform,
-		MouseButtonEvent,
-		MouseMotionEvent,
-		MovementSettings,
-		MovementStates,
-		PickupLocation,
-		PositionF,
-		SavedMovementStates,
-		TeleportAck,
-		Vector2f,
-		Vector3d,
-		Vector3f,
-		Vector3i,
-		WorldInteraction,
-	},
+use crate::v1::{
+	BlockRotation,
+	DamageCause,
+	DebugShape,
+	DirectionF,
+	GameMode,
+	HalfFloatPosition,
+	ModelTransform,
+	MouseButtonEvent,
+	MouseMotionEvent,
+	MovementSettings,
+	MovementStates,
+	PickupLocation,
+	PositionF,
+	SavedMovementStates,
+	TeleportAck,
+	Vector2f,
+	Vector3d,
+	Vector3f,
+	Vector3i,
+	WorldInteraction,
 };
 
-// Empty signal packet
-define_packet! { ClearDebugShapes {} }
+define_packet! { ClearDebugShapes }
 
 define_packet! {
 	ClientMovement {
-		mask_size: 2
 		fixed {
-			opt movement_states: MovementStates [pad=22],
-			opt relative_position: HalfFloatPosition [pad=6],
-			opt absolute_position: PositionF [pad=24],
-			opt body_orientation: DirectionF [pad=12],
-			opt look_orientation: DirectionF [pad=12],
-			opt teleport_ack: TeleportAck [pad=1],
-			opt wish_movement: PositionF [pad=24],
-			opt velocity: Vector3d [pad=24],
+			opt(0, 1) movement_states: MovementStates,
+			opt(0, 2) relative_position: HalfFloatPosition,
+			opt(0, 4) absolute_position: PositionF,
+			opt(0, 8) body_orientation: DirectionF,
+			opt(0, 16) look_orientation: DirectionF,
+			opt(0, 32) teleport_ack: TeleportAck,
+			opt(0, 64) wish_movement: PositionF,
+			opt(0, 128) velocity: Vector3d,
 			required mounted_to: i32,
-			opt rider_movement_states: MovementStates [pad=22],
+			opt(1, 1) rider_movement_states: MovementStates,
 		}
 	}
 }
@@ -50,8 +46,8 @@ define_packet! {
 define_packet! {
 	ClientPlaceBlock {
 		fixed {
-			opt position: Vector3i [pad=12],
-			opt rotation: BlockRotation [pad=3],
+			opt(1) position: Vector3i,
+			opt(2) rotation: BlockRotation,
 			required placed_block_id: u8,
 		}
 	}
@@ -66,7 +62,7 @@ define_packet! {
 	ClientTeleport {
 		fixed {
 			required teleport_id: u8,
-			opt model_transform: ModelTransform [pad=49],
+			opt(1) model_transform: ModelTransform,
 			required reset_velocity: bool,
 		}
 	}
@@ -75,9 +71,11 @@ define_packet! {
 define_packet! {
 	DamageInfo {
 		fixed {
-			opt damage_source_position: Vector3d [pad=24],
+			opt(1) damage_source_position: Vector3d,
 			required damage_amount: f32,
-			opt damage_cause: DamageCause
+		}
+		variable {
+			opt(2) damage_cause: DamageCause
 		}
 	}
 }
@@ -86,13 +84,13 @@ define_packet! {
 	DisplayDebug {
 		fixed {
 			required shape: DebugShape,
-			opt(1) color: Vector3f [pad=12],
+			opt(2) color: Vector3f,
 			required time: f32,
 			required fade: bool
 		}
 		variable {
-			opt(0) matrix: Vec<f32>,
-			opt(2) frustum_projection: Vec<f32>,
+			opt(1) matrix: Vec<f32>,
+			opt(4) frustum_projection: Vec<f32>,
 		}
 	}
 }
@@ -110,21 +108,21 @@ define_packet! {
 		fixed {
 			required client_timestamp: i64,
 			required active_slot: i32,
-			opt(1) screen_point: Vector2f [pad=8],
-			opt(2) mouse_button: MouseButtonEvent [pad=3],
-			opt(4) world_interaction: WorldInteraction [pad=20], // 1 null + 19 data
+			opt(2) screen_point: Vector2f,
+			opt(4) mouse_button: MouseButtonEvent,
+			opt(16) world_interaction: WorldInteraction,
 		}
 		variable {
-			opt(0) item_in_hand_id: String,
-			opt(3) mouse_motion: MouseMotionEvent,
+			opt(1) item_in_hand_id: String,
+			opt(8) mouse_motion: MouseMotionEvent,
 		}
 	}
 }
 
 define_packet! {
 	RemoveMapMarker {
-		fixed {
-			opt marker_id: String
+		variable {
+			opt(1) marker_id: String
 		}
 	}
 }
@@ -142,7 +140,7 @@ define_packet! { SetGameMode { game_mode: GameMode } }
 define_packet! {
 	SetMovementStates {
 		fixed {
-			opt movement_states: SavedMovementStates,
+			opt(1) movement_states: SavedMovementStates,
 		}
 	}
 }

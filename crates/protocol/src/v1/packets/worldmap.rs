@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{
-	define_packet,
-	v1::Transform,
-};
+use bytes::Buf;
+use macros::define_packet;
+
+use crate::v1::Transform;
 
 define_packet! { BiomeData {
 	fixed {
@@ -11,8 +11,8 @@ define_packet! { BiomeData {
 		required biome_color: i32
 	}
 	variable {
-		opt zone_name: String,
-		opt biome_name: String
+		opt(1) zone_name: String,
+		opt(2) biome_name: String
 	}
 } }
 define_packet! { ClearWorldMap { } }
@@ -26,38 +26,42 @@ define_packet! { MapChunk {
 	fixed {
 		required chunk_x: i32,
 		required chunk_z: i32,
-		opt image: MapImage
+	}
+	variable {
+		opt(1) image: MapImage
 	}
 } }
 define_packet! { MapImage {
 	fixed {
 		required width: i32,
 		required height: i32,
-		opt data: Vec<i32>
+	}
+	variable {
+		opt(1) data: Vec<i32>
 	}
 } }
 define_packet! { MapMarker {
 	fixed {
-		opt(3) transform: Transform [pad=37]
+		opt(8) transform: Transform
 	}
 	variable {
-		opt(0) id: String,
-		opt(1) name: String,
-		opt(2) marker_image: String,
-		opt(4) context_menu_items: Vec<ContextMenuItem>
+		opt(1) id: String,
+		opt(2) name: String,
+		opt(4) marker_image: String,
+		opt(16) context_menu_items: Vec<ContextMenuItem>
 	}
 } }
 define_packet! { TeleportToWorldMapMarker {
-	fixed {
-		opt marker_id: String
+	variable {
+		opt(1) marker_id: String
 	}
 } }
 define_packet! { TeleportToWorldMapPosition { position_x: f32, position_y: f32 } }
 define_packet! { UpdateWorldMap {
 	variable {
-		opt chunks: Vec<MapChunk>,
-		opt added_markers: Vec<MapMarker>,
-		opt removed_markers: Vec<String>
+		opt(1) chunks: Vec<MapChunk>,
+		opt(2) added_markers: Vec<MapMarker>,
+		opt(4) removed_markers: Vec<String>
 	}
 } }
 define_packet! { UpdateWorldMapSettings {
@@ -68,7 +72,9 @@ define_packet! { UpdateWorldMapSettings {
 		required default_scale: f32,
 		required min_scale: f32,
 		required max_scale: f32,
-		opt biome_data_map: HashMap<i16, BiomeData>
+	}
+	variable {
+		opt(1) biome_data_map: HashMap<i16, BiomeData>
 	}
 } }
 define_packet! { UpdateWorldMapVisible { visible: bool } }

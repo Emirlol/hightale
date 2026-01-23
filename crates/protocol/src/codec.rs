@@ -23,6 +23,26 @@ use uuid::Uuid;
 
 use crate::v1::MAX_SIZE;
 
+// A helper trait to allow casting from any primitive to your specific types
+pub trait PacketNum {
+	fn to_usize(self) -> usize;
+	fn to_i32(self) -> i32;
+}
+
+// Macro to implement this trait for all primitive types easily
+macro_rules! impl_packet_num {
+    ($($t:ty),*) => {
+        $(
+            impl PacketNum for $t {
+                #[inline] fn to_usize(self) -> usize { self as usize }
+                #[inline] fn to_i32(self) -> i32 { self as i32 }
+            }
+        )*
+    };
+}
+
+impl_packet_num!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
+
 #[derive(Debug, Error)]
 pub enum PacketError {
 	#[error("In field '{0}': {1}")]
@@ -31,14 +51,16 @@ pub enum PacketError {
 	Incomplete,
 	#[error("Incomplete packet: expected at least {expected} bytes, found {found} bytes")]
 	IncompleteBytes { found: usize, expected: usize },
+	#[error("Incomplete packet: expected exactly {expected} bytes, found {found} bytes")]
+	IncompleteBytesExact { found: usize, expected: usize },
 	#[error("Decoding took more bytes than given padding bytes: actual: {actual} > expected max: {pad}")]
-	DecodedMoreThanPadding { actual: usize, pad: i32 },
+	DecodedMoreThanPadding { actual: usize, pad: usize },
 	#[error("String too long: actual: {actual} > expected max: {max_expected}")]
-	StringTooLong { actual: i32, max_expected: i32 },
+	StringTooLong { actual: usize, max_expected: usize },
 	#[error("Negative length: {0}")]
 	NegativeLength(i32),
 	#[error("Collection too large: actual: {actual} > expected max: {max_expected}")]
-	CollectionTooLarge { actual: i32, max_expected: i32 },
+	CollectionTooLarge { actual: usize, max_expected: usize },
 	#[error("Invalid enum variant '{0}'")]
 	InvalidEnumVariant(u8),
 	#[error("Duplicate key '{0}' in map")]
@@ -47,6 +69,53 @@ pub enum PacketError {
 	InvalidVarInt,
 	#[error("UTF8 Error: {0}")]
 	Utf8(#[from] FromUtf8Error),
+}
+
+impl PacketError {
+	#[inline]
+	pub fn incomplete_bytes(found: impl PacketNum, expected: impl PacketNum) -> Self {
+		Self::IncompleteBytes {
+			found: found.to_usize(),
+			expected: expected.to_usize(),
+		}
+	}
+
+	#[inline]
+	pub fn incomplete_bytes_exact(found: impl PacketNum, expected: impl PacketNum) -> Self {
+		Self::IncompleteBytesExact {
+			found: found.to_usize(),
+			expected: expected.to_usize(),
+		}
+	}
+
+	#[inline]
+	pub fn decoded_more_than_padding(actual: impl PacketNum, pad: impl PacketNum) -> Self {
+		Self::DecodedMoreThanPadding {
+			actual: actual.to_usize(),
+			pad: pad.to_usize(),
+		}
+	}
+
+	#[inline]
+	pub fn string_too_long(actual: impl PacketNum, max_expected: impl PacketNum) -> Self {
+		Self::StringTooLong {
+			actual: actual.to_usize(),
+			max_expected: max_expected.to_usize(),
+		}
+	}
+
+	#[inline]
+	pub fn collection_too_large(actual: impl PacketNum, max_expected: impl PacketNum) -> Self {
+		Self::CollectionTooLarge {
+			actual: actual.to_usize(),
+			max_expected: max_expected.to_usize(),
+		}
+	}
+
+	#[inline]
+	pub fn negative_length(len: impl PacketNum) -> Self {
+		Self::NegativeLength(len.to_i32())
+	}
 }
 
 pub trait PacketContext<T> {
@@ -89,8 +158,9 @@ impl HytaleCodec for f64 {
 		buf.put_f64_le(*self);
 	}
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 8 {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < 8 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 4));
 		}
 		Ok(buf.get_f64_le())
 	}
@@ -101,8 +171,9 @@ impl HytaleCodec for f32 {
 		buf.put_f32_le(*self);
 	}
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 4 {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < 4 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 4));
 		}
 		Ok(buf.get_f32_le())
 	}
@@ -113,10 +184,24 @@ impl HytaleCodec for i64 {
 		buf.put_i64_le(*self);
 	}
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 8 {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < 8 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 8));
 		}
 		Ok(buf.get_i64_le())
+	}
+}
+
+impl HytaleCodec for u32 {
+	fn encode(&self, buf: &mut BytesMut) {
+		buf.put_u32_le(*self);
+	}
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let remaining = buf.remaining();
+		if remaining < 4 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 4));
+		}
+		Ok(buf.get_u32_le())
 	}
 }
 
@@ -125,8 +210,9 @@ impl HytaleCodec for i32 {
 		buf.put_i32_le(*self);
 	}
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 4 {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < 4 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 4));
 		}
 		Ok(buf.get_i32_le())
 	}
@@ -137,8 +223,9 @@ impl HytaleCodec for u16 {
 		buf.put_u16_le(*self);
 	}
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 2 {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < 2 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 2));
 		}
 		Ok(buf.get_u16_le())
 	}
@@ -149,8 +236,9 @@ impl HytaleCodec for i16 {
 		buf.put_i16_le(*self);
 	}
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 2 {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < 2 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 2));
 		}
 		Ok(buf.get_i16_le())
 	}
@@ -162,7 +250,7 @@ impl HytaleCodec for u8 {
 	}
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		if !buf.has_remaining() {
-			return Err(PacketError::Incomplete);
+			return Err(PacketError::incomplete_bytes_exact(0, 1));
 		}
 		Ok(buf.get_u8())
 	}
@@ -202,7 +290,8 @@ impl HytaleCodec for VarInt {
 			if num_read > 5 {
 				return Err(PacketError::InvalidVarInt);
 			}
-			if (read & 0b10000000) == 0 { // Top bit not set, end of VarInt
+			if (read & 0b10000000) == 0 {
+				// Top bit not set, end of VarInt
 				break;
 			}
 		}
@@ -219,17 +308,15 @@ impl HytaleCodec for String {
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let len_raw = VarInt::decode(buf)?.0;
 		if len_raw < 0 {
-			return Err(PacketError::NegativeLength(len_raw));
+			return Err(PacketError::negative_length(len_raw));
 		}
 		if len_raw > MAX_SIZE {
-			return Err(PacketError::StringTooLong {
-				actual: len_raw,
-				max_expected: MAX_SIZE,
-			});
+			return Err(PacketError::string_too_long(len_raw, MAX_SIZE));
 		}
 		let len = len_raw as usize;
-		if buf.remaining() < len {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < len {
+			return Err(PacketError::incomplete_bytes_exact(remaining, len));
 		}
 		let bytes = buf.copy_to_bytes(len);
 		let str = String::from_utf8(bytes.to_vec())?;
@@ -276,21 +363,19 @@ impl<T: HytaleCodec> HytaleCodec for BitOptionVec<T> {
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let count_raw = VarInt::decode(buf)?.0;
 		if count_raw < 0 {
-			return Err(PacketError::NegativeLength(count_raw));
+			return Err(PacketError::negative_length(count_raw));
 		} else if count_raw == 0 {
 			return Ok(BitOptionVec(vec![]));
 		} else if count_raw > MAX_SIZE {
-			return Err(PacketError::CollectionTooLarge {
-				actual: count_raw,
-				max_expected: MAX_SIZE,
-			});
+			return Err(PacketError::collection_too_large(count_raw, MAX_SIZE));
 		}
 
 		let count = count_raw as usize;
 		let bitfield_len = count.div_ceil(8);
 
-		if buf.remaining() < bitfield_len {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < bitfield_len {
+			return Err(PacketError::incomplete_bytes(remaining, bitfield_len));
 		}
 
 		let mut bits = vec![0u8; bitfield_len];
@@ -360,8 +445,9 @@ impl<const N: usize> HytaleCodec for FixedAscii<N> {
 	}
 
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < N {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < N {
+			return Err(PacketError::incomplete_bytes_exact(remaining, N));
 		}
 
 		let mut bytes = [0u8; N];
@@ -379,8 +465,9 @@ impl HytaleCodec for Bytes {
 
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let len = VarInt::decode(buf)?.0 as usize;
-		if buf.remaining() < len {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < len {
+			return Err(PacketError::incomplete_bytes_exact(remaining, len));
 		}
 		Ok(buf.copy_to_bytes(len))
 	}
@@ -391,26 +478,11 @@ impl HytaleCodec for Uuid {
 		buf.put_u128(self.as_u128());
 	}
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if buf.remaining() < 16 {
-			return Err(PacketError::Incomplete);
+		let remaining = buf.remaining();
+		if remaining < 16 {
+			return Err(PacketError::incomplete_bytes_exact(remaining, 16));
 		}
 		Ok(Uuid::from_u128(buf.get_u128()))
-	}
-}
-
-impl<T: HytaleCodec> HytaleCodec for Option<T> {
-	fn encode(&self, buf: &mut BytesMut) {
-		if let Some(inner) = self {
-			inner.encode(buf);
-		}
-	}
-
-	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
-		if !buf.has_remaining() {
-			return Err(PacketError::Incomplete);
-		}
-		let present = buf.get_u8() != 0;
-		if present { Ok(Some(T::decode(buf)?)) } else { Ok(None) }
 	}
 }
 
@@ -424,6 +496,10 @@ impl<T: HytaleCodec> HytaleCodec for Vec<T> {
 
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let len = VarInt::decode(buf)?.0 as usize;
+		let remaining = buf.remaining();
+		if remaining < len {
+			return Err(PacketError::incomplete_bytes_exact(remaining, len));
+		}
 		let mut out = Vec::with_capacity(len);
 		for _ in 0..len {
 			out.push(T::decode(buf)?);
@@ -448,13 +524,10 @@ where
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
 		let len_raw = VarInt::decode(buf)?.0;
 		if len_raw < 0 {
-			return Err(PacketError::NegativeLength(len_raw));
+			return Err(PacketError::negative_length(len_raw));
 		}
 		if len_raw > MAX_SIZE {
-			return Err(PacketError::CollectionTooLarge {
-				actual: len_raw,
-				max_expected: MAX_SIZE,
-			});
+			return Err(PacketError::collection_too_large(len_raw, MAX_SIZE));
 		}
 		let len = len_raw as usize;
 		let mut map = HashMap::with_capacity(len);
@@ -491,7 +564,7 @@ impl<T: HytaleCodec + Copy> HytaleCodec for OrderedFloat<T> {
 }
 
 // Tuples
-macro_rules! tuple_impl {
+macro_rules! tuple_codec_impl {
     ($($name:ident),+) => {
 		impl<$($name: HytaleCodec),+> HytaleCodec for ($($name,)+) {
 			fn encode(&self, buf: &mut BytesMut) {
@@ -512,15 +585,67 @@ macro_rules! tuple_impl {
 	};
 }
 
-macro_rules! impl_all_tuples {
+macro_rules! impl_codec_all_tuples {
     () => {};
 
     ($first:ident, $($rest:ident),+) => {
-        tuple_impl!($first, $($rest),+);
-        impl_all_tuples!($($rest),+);
+        tuple_codec_impl!($first, $($rest),+);
+        impl_codec_all_tuples!($($rest),+);
     };
     ($first:ident) => {
-        tuple_impl!($first);
+        tuple_codec_impl!($first);
     };
 }
-impl_all_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);
+impl_codec_all_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);
+
+pub trait FixedSize {
+	const SIZE: usize;
+}
+
+macro_rules! impl_fixed_size_primitives {
+    ($($name:ty),+ $(,)?) => {
+	    $(impl FixedSize for $name {
+		    const SIZE: usize = std::mem::size_of::<$name>();
+	    })+
+    };
+}
+
+impl_fixed_size_primitives!((), bool, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64, char);
+
+macro_rules! tuple_fixed_size_impl {
+    ($($name:ident),+) => {
+		impl<$($name: FixedSize),+> FixedSize for ($($name,)+) {
+			const SIZE: usize = 0 $(+ $name::SIZE)+;
+		}
+	};
+}
+
+macro_rules! impl_fixed_size_all_tuples {
+	() => {};
+
+	($first:ident, $($rest:ident),+) => {
+		tuple_fixed_size_impl!($first, $($rest),+);
+		impl_fixed_size_all_tuples!($($rest),+);
+	};
+	($first:ident) => {
+		tuple_fixed_size_impl!($first);
+	};
+}
+
+impl_fixed_size_all_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z);
+
+impl FixedSize for Uuid {
+	const SIZE: usize = 16;
+}
+
+impl<const N: usize> FixedSize for FixedAscii<N> {
+	const SIZE: usize = N;
+}
+
+impl<T: FixedSize> FixedSize for Box<T> {
+	const SIZE: usize = T::SIZE;
+}
+
+impl<T: FixedSize> FixedSize for OrderedFloat<T> {
+	const SIZE: usize = T::SIZE;
+}

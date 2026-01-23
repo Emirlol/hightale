@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bytes::Buf;
 use uuid::Uuid;
-
+use macros::define_packet;
 use crate::v1::{
 	BlockFace,
 	BlockRotation,
@@ -16,7 +16,6 @@ use crate::v1::{
 use crate::{
 	codec::BitOptionVec,
 	define_enum,
-	define_packet,
 };
 
 define_packet! {
@@ -24,7 +23,9 @@ define_packet! {
 		fixed {
 			required entry_index: i32,
 			required sub_index: i32,
-			opt forked_id: Box<ForkedChainId> // Indirection so we don't have infinite size errors due to recursive typing
+		}
+		variable {
+			opt(1) forked_id: Box<ForkedChainId> // Indirection so we don't have infinite size errors due to recursive typing
 		}
 	}
 }
@@ -33,13 +34,15 @@ define_packet! {
 	CancelInteractionChain {
 		fixed {
 			required chain_id: i32,
-			opt forked_id: ForkedChainId
+		}
+		variable {
+			opt(1) forked_id: ForkedChainId
 		}
 	}
 }
 
 // Empty signal packet
-define_packet! { DismountNPC {} }
+define_packet! { DismountNPC }
 
 define_packet! { MountNPC {
 	anchor_pos: Vector3f,
@@ -87,8 +90,8 @@ define_packet! {
 			required cancel: bool,
 		}
 		variable {
-			opt forked_id: ForkedChainId,
-			opt interacted_item_id: String
+			opt(1) forked_id: ForkedChainId,
+			opt(2) interacted_item_id: String
 		}
 	}
 }
@@ -114,7 +117,6 @@ define_enum! {
 
 define_packet! {
 	InteractionSyncData {
-		mask_size: 2,
 		fixed {
 			required state: InteractionState,
 			required progress: f32,
@@ -123,26 +125,26 @@ define_packet! {
 			required total_forks: i32,
 			required entity_id: i32,
 			required entered_root_interaction: i32,
-			opt(0) block_position: Vector3i [pad=12],
+			opt(0, 1) block_position: Vector3i,
 			required block_face: BlockFace,
-			opt(1) block_rotation: BlockRotation [pad=3],
+			opt(0, 2) block_rotation: BlockRotation,
 			required placed_block_id: i32,
 			required charge_value: f32,
 			required chaining_index: i32,
 			required flag_index: i32,
-			opt(4) attacker_pos: PositionF [pad=24],
-			opt(5) attacker_rot: DirectionF [pad=12],
-			opt(6) raycast_hit: PositionF [pad=24],
+			opt(0, 16) attacker_pos: PositionF,
+			opt(0, 32) attacker_rot: DirectionF,
+			opt(0, 64) raycast_hit: PositionF,
 			required raycast_distance: f32,
-			opt(7) raycast_normal: Vector3f [pad=12],
+			opt(0, 128) raycast_normal: Vector3f,
 			required movement_direction: MovementDirection,
 			required apply_force_state: ApplyForceState,
 			required next_label: i32,
-			opt(8) generated_uuid: Uuid [pad=16],
+			opt(1, 1) generated_uuid: Uuid,
 		}
 		variable {
-			opt(2) fork_counts: HashMap<InteractionType, i32>,
-			opt(3) hit_entities: Vec<SelectedHitEntity>,
+			opt(0, 4) fork_counts: HashMap<InteractionType, i32>,
+			opt(0, 8) hit_entities: Vec<SelectedHitEntity>,
 		}
 	}
 }
@@ -152,11 +154,13 @@ define_packet! {
 		fixed {
 			required entity_id: i32,
 			required proxy_id: Uuid,
-			opt(0) hit_location: Vector3f [pad=12],
-			opt(2) block_position: Vector3i [pad=12],
+			opt(1) hit_location: Vector3f,
+			opt(4) block_position: Vector3i,
 			required target_slot: i32,
-			opt(3) hit_normal: Vector3f [pad=12],
-			opt(1) hit_detail: String
+			opt(8) hit_normal: Vector3f,
+		}
+		variable {
+			opt(2) hit_detail: String
 		}
 	}
 }
@@ -177,19 +181,21 @@ define_packet! {
 			required operation_base_index: i32,
 		}
 		variable {
-			opt item_in_hand_id: String,
-			opt utility_item_id: String,
-			opt tools_item_id: String,
-			opt forked_id: ForkedChainId,
-			opt data: Box<InteractionChainData>, // Boxed to reduce enum variant size by ~100 bytes
-			opt new_forks: Vec<SyncInteractionChain>,
-			opt interaction_data: BitOptionVec<InteractionSyncData>,
+			opt(1) item_in_hand_id: String,
+			opt(2) utility_item_id: String,
+			opt(4) tools_item_id: String,
+			opt(8) forked_id: ForkedChainId,
+			opt(16) data: Box<InteractionChainData>, // Boxed to reduce enum variant size by ~100 bytes
+			opt(32) new_forks: Vec<SyncInteractionChain>,
+			opt(64) interaction_data: BitOptionVec<InteractionSyncData>,
 		}
 	}
 }
 
 define_packet! {
 	SyncInteractionChains {
-		updates: Vec<SyncInteractionChain>,
+		variable {
+			required updates: Vec<SyncInteractionChain>,
+		}
 	}
 }

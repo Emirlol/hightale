@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
 use ordered_float::OrderedFloat;
-
+use macros::define_packet;
 use crate::{
 	define_enum,
-	define_packet,
 	id_dispatch,
 	v1::{
 		camera::CameraShakeEffect,
@@ -43,16 +42,16 @@ define_packet! {
 			required wait_for_animation_to_finish: bool,
 			required clear_animation_on_finish: bool,
 			required clear_sound_event_on_finish: bool,
-			opt(5) camera_shake: CameraShakeEffect [pad=9],
-			opt(6) movement_effects: MovementEffects [pad=7],
+			opt(32) camera_shake: CameraShakeEffect,
+			opt(64) movement_effects: MovementEffects,
 			required start_delay: f32,
 		}
 		variable {
-			opt(0) particles: Vec<ModelParticle>,
-			opt(1) first_person_particles: Vec<ModelParticle>,
-			opt(2) trails: Vec<ModelTrail>,
-			opt(3) item_player_animations_id: String,
-			opt(4) item_animation_id: String,
+			opt(1) particles: Vec<ModelParticle>,
+			opt(2) first_person_particles: Vec<ModelParticle>,
+			opt(4) trails: Vec<ModelTrail>,
+			opt(8) item_player_animations_id: String,
+			opt(16) item_animation_id: String,
 		}
 	}
 }
@@ -72,10 +71,10 @@ define_packet! {
 			required interrupting_bypass_index: i32,
 		}
 		variable {
-			opt blocked_by: Vec<InteractionType>,
-			opt blocking: Vec<InteractionType>,
-			opt interrupted_by: Vec<InteractionType>,
-			opt interrupting: Vec<InteractionType>,
+			opt(1) blocked_by: Vec<InteractionType>,
+			opt(2) blocking: Vec<InteractionType>,
+			opt(4) interrupted_by: Vec<InteractionType>,
+			opt(8) interrupting: Vec<InteractionType>,
 		}
 	}
 }
@@ -84,8 +83,8 @@ define_packet! {
 	InteractionCamera {
 		fixed {
 			required time: f32,
-			opt position: Vector3f [pad=12],
-			opt rotation: DirectionF [pad=12],
+			opt(1) position: Vector3f,
+			opt(2) rotation: DirectionF,
 		}
 	}
 }
@@ -93,8 +92,8 @@ define_packet! {
 define_packet! {
 	InteractionCameraSettings {
 		variable {
-			opt first_person: Vec<InteractionCamera>,
-			opt third_person: Vec<InteractionCamera>,
+			opt(1) first_person: Vec<InteractionCamera>,
+			opt(2) third_person: Vec<InteractionCamera>,
 		}
 	}
 }
@@ -111,11 +110,11 @@ define_packet! {
 			required use_latest_target: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -131,11 +130,11 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -154,11 +153,11 @@ define_packet! {
 			required allow_drag_placement: bool
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -176,11 +175,11 @@ define_packet! {
 			required harvest: bool
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -197,11 +196,11 @@ define_packet! {
 			required use_latest_target: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -218,11 +217,11 @@ define_packet! {
 			required use_latest_target: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -238,11 +237,11 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -258,18 +257,17 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
 
 define_packet! {
 	ModifyInventoryInteraction {
-		mask_size: 2
 		fixed {
 			required wait_for_data_from: WaitForDataFrom,
 			required horizontal_speed_multiplier: f32,
@@ -277,19 +275,19 @@ define_packet! {
 			required cancel_on_item_change: bool,
 			required next: i32,
 			required failed: i32,
-			opt(5) required_game_mode: GameMode,
+			opt(0, 32) required_game_mode: GameMode,
 			required adjust_held_item_quantity: i32,
 			required adjust_held_item_durability: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(6) item_to_remove: ItemWithAllMetadata,
-			opt(7) item_to_add: ItemWithAllMetadata,
-			opt(8) broken_item: String
+			opt(0, 1) effects: InteractionEffects,
+			opt(0, 2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(0, 4) rules: InteractionRules,
+			opt(0, 8) tags: Vec<i32>,
+			opt(0, 16) camera: InteractionCameraSettings,
+			opt(0, 64) item_to_remove: ItemWithAllMetadata,
+			opt(0, 128) item_to_add: ItemWithAllMetadata,
+			opt(1, 1) broken_item: String
 		}
 	}
 }
@@ -319,16 +317,16 @@ define_packet! {
 			required fail_on_damage: bool,
 			required mouse_sensitivity_adjustment_target: f32,
 			required mouse_sensitivity_adjustment_duration: f32,
-			opt(7) charging_delay: ChargingDelay
+			opt(128) charging_delay: ChargingDelay
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
-			opt(6) forks: HashMap<InteractionType, i32>,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
+			opt(64) forks: HashMap<InteractionType, i32>,
 		}
 	}
 }
@@ -345,10 +343,12 @@ define_packet! {
 	WorldParticle {
 		fixed {
 			required scale: f32,
-			opt(1) color: Color [pad=3],
-			opt(2) position_offset: Vector3f [pad=12],
-			opt(3) rotation_offset: DirectionF [pad=12],
-			opt(0) system_id: String
+			opt(2) color: Color,
+			opt(4) position_offset: Vector3f,
+			opt(8) rotation_offset: DirectionF,
+		}
+		variable {
+			opt(1) system_id: String
 		}
 	}
 }
@@ -359,15 +359,14 @@ define_packet! {
 			required sound_event_index: i32
 		}
 		variable {
-			opt model_particles: Vec<ModelParticle>,
-			opt world_particles: Vec<WorldParticle>
+			opt(1) model_particles: Vec<ModelParticle>,
+			opt(2) world_particles: Vec<WorldParticle>
 		}
 	}
 }
 
 define_packet! {
 	WieldingInteraction {
-		mask_size: 2
 		fixed {
 			required wait_for_data_from: WaitForDataFrom,
 			required horizontal_speed_multiplier: f32,
@@ -381,19 +380,19 @@ define_packet! {
 			required fail_on_damage: bool,
 			required mouse_sensitivity_adjustment_target: f32,
 			required mouse_sensitivity_adjustment_duration: f32,
-			opt(7) charging_delay: ChargingDelay,
+			opt(0, 128) charging_delay: ChargingDelay,
 			required has_modifiers: bool,
-			opt(8) angled_wielding: AngledWielding
+			opt(1, 1) angled_wielding: AngledWielding
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
-			opt(6) forks: HashMap<InteractionType, i32>,
-			opt(9) blocked_effects: DamageEffects
+			opt(0, 1) effects: InteractionEffects,
+			opt(0, 2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(0, 4) rules: InteractionRules,
+			opt(0, 8) tags: Vec<i32>,
+			opt(0, 16) camera: InteractionCameraSettings,
+			opt(0, 32) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
+			opt(0, 64) forks: HashMap<InteractionType, i32>,
+			opt(1, 2) blocked_effects: DamageEffects
 		}
 	}
 }
@@ -408,21 +407,20 @@ define_packet! {
 			required chaining_allowance: f32
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) chain_id: String,
-			opt(6) chaining_next: Vec<i32>,
-			opt(7) flags: HashMap<String, i32>
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) chain_id: String,
+			opt(64) chaining_next: Vec<i32>,
+			opt(128) flags: HashMap<String, i32>
 		}
 	}
 }
 
 define_packet! {
 	ConditionInteraction {
-		mask_size: 2
 		fixed {
 			required wait_for_data_from: WaitForDataFrom,
 			required horizontal_speed_multiplier: f32,
@@ -430,19 +428,19 @@ define_packet! {
 			required cancel_on_item_change: bool,
 			required next: i32,
 			required failed: i32,
-			opt(5) required_game_mode: GameMode,
-			opt(6) jumping: bool, // @Nullable Boolean be like
-			opt(7) swimming: bool,
-			opt(8) crouching: bool,
-			opt(9) running: bool,
-			opt(10) flying: bool,
+			opt(0, 32) required_game_mode: GameMode,
+			opt(0, 64) jumping: bool, // @Nullable Boolean be like
+			opt(0, 128) swimming: bool,
+			opt(1, 1) crouching: bool,
+			opt(1, 2) running: bool,
+			opt(1, 4) flying: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(0, 1) effects: InteractionEffects,
+			opt(0, 2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(0, 4) rules: InteractionRules,
+			opt(0, 8) tags: Vec<i32>,
+			opt(0, 16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -461,12 +459,12 @@ define_packet! {
 			required value_type: ValueType
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) costs: HashMap<i32, f32>
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) costs: HashMap<i32, f32>
 		}
 	}
 }
@@ -477,8 +475,8 @@ define_packet! {
 			required tag_index: i32
 		}
 		variable {
-			opt id: String,
-			opt state: String
+			opt(1) id: String,
+			opt(2) state: String
 		}
 	}
 }
@@ -488,7 +486,9 @@ define_packet! {
 		fixed {
 			required face: BlockFace,
 			required static_face: bool,
-			opt block: BlockIdMatcher
+		}
+		variable {
+			opt(1) block: BlockIdMatcher
 		}
 	}
 }
@@ -505,12 +505,12 @@ define_packet! {
 			required use_latest_target: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) matchers: Vec<BlockMatcher>
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) matchers: Vec<BlockMatcher>
 		}
 	}
 }
@@ -525,12 +525,12 @@ define_packet! {
 			required default_value: i32
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) variable: String
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) variable: String
 		}
 	}
 }
@@ -549,12 +549,12 @@ define_packet! {
 			required require_not_broken: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) block_changes: HashMap<i32, i32>
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) block_changes: HashMap<i32, i32>
 		}
 	}
 }
@@ -571,12 +571,12 @@ define_packet! {
 			required use_latest_target: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) state_changes: HashMap<String, String>
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) state_changes: HashMap<String, String>
 		}
 	}
 }
@@ -592,11 +592,11 @@ define_packet! {
 			required held: i32
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -613,12 +613,12 @@ define_packet! {
 			required use_latest_target: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) refill_fluiids: Vec<i32>
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) refill_fluiids: Vec<i32>
 		}
 	}
 }
@@ -649,8 +649,8 @@ define_packet! {
 
 define_packet! {
 	HitEntity {
-		fixed {
-			opt matchers: Vec<EntityMatcher>
+		variable {
+			opt(1) matchers: Vec<EntityMatcher>
 		}
 	}
 }
@@ -669,12 +669,12 @@ define_packet! {
 			required fail_on: FailOnType,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) hit_entity_rules: Vec<HitEntity>
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) hit_entity_rules: Vec<HitEntity>
 		}
 	}
 }
@@ -685,7 +685,9 @@ define_packet! {
 			required angle: f64,
 			required angle_distance: f64,
 			required next: i32,
-			opt damage_effects: DamageEffects
+		}
+		variable {
+			opt(1) damage_effects: DamageEffects
 		}
 	}
 }
@@ -695,7 +697,9 @@ define_packet! {
 		fixed {
 			required index: i32,
 			required next: i32,
-			opt damage_effects: DamageEffects
+		}
+		variable {
+			opt(1) damage_effects: DamageEffects
 		}
 	}
 }
@@ -706,14 +710,15 @@ define_packet! {
 			required entity_stat_index: i32,
 			required amount: f32,
 			required multiplier_per_extra_entities_hit_count: f32,
-			opt multipliers_per_entities_hit: Vec<f32>
+		}
+		variable {
+			opt(1) multipliers_per_entities_hit: Vec<f32>
 		}
 	}
 }
 
 define_packet! {
 	DamageEntityInteraction {
-		mask_size: 2
 		fixed {
 			required wait_for_data_from: WaitForDataFrom,
 			required horizontal_speed_multiplier: f32,
@@ -724,15 +729,15 @@ define_packet! {
 			required blocked: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) damage_effects: DamageEffects,
-			opt(6) angled_damage: Vec<AngledDamage>,
-			opt(7) targeted_damage: HashMap<String, TargetedDamage>,
-			opt(8) entity_status_on_hit: Vec<EntityStatOnHit>
+			opt(0, 1) effects: InteractionEffects,
+			opt(0, 2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(0, 4) rules: InteractionRules,
+			opt(0, 8) tags: Vec<i32>,
+			opt(0, 16) camera: InteractionCameraSettings,
+			opt(0, 32) damage_effects: DamageEffects,
+			opt(0, 64) angled_damage: Vec<AngledDamage>,
+			opt(0, 128) targeted_damage: HashMap<String, TargetedDamage>,
+			opt(1, 1) entity_status_on_hit: Vec<EntityStatOnHit>
 		}
 	}
 }
@@ -750,11 +755,11 @@ define_packet! {
 			required repeat: i32
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -767,12 +772,12 @@ define_packet! {
 			required cancel_on_item_change: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) next: Vec<i32>,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) next: Vec<i32>,
 		}
 	}
 }
@@ -787,11 +792,11 @@ define_packet! {
 			required target_slot: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -824,12 +829,12 @@ define_packet! {
 			required entity_target: InteractionTarget
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) entity_effects: Vec<i32>,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) entity_effects: Vec<i32>,
 		}
 	}
 }
@@ -844,7 +849,7 @@ define_enum! {
 define_packet! {
 	AppliedForce {
 		fixed {
-			opt direction: Vector3f [pad=12],
+			opt(1) direction: Vector3f,
 			required adjust_vertical: bool,
 			required force: f32,
 		}
@@ -860,7 +865,7 @@ define_packet! {
 			required cancel_on_item_change: bool,
 			required next: i32,
 			required failed: i32,
-			opt(5) velocity_config: VelocityConfig [pad=21],
+			opt(32) velocity_config: VelocityConfig,
 			required change_velocity_type: ChangeVelocityType,
 			required duration: f32,
 			required wait_for_ground: bool,
@@ -874,12 +879,12 @@ define_packet! {
 			required raycast_mode: RaycastMode,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) forces: Vec<AppliedForce>,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) forces: Vec<AppliedForce>,
 		}
 	}
 }
@@ -897,11 +902,11 @@ define_packet! {
 			required entity_target: InteractionTarget
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -919,11 +924,11 @@ define_packet! {
 			required entity_target: InteractionTarget
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -937,12 +942,12 @@ define_packet! {
 			required cancel_on_item_change: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) serial_interactions: Vec<i32>,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) serial_interactions: Vec<i32>,
 		}
 	}
 }
@@ -968,12 +973,12 @@ define_packet! {
 			required change_stat_behavior: ChangeStatBehavior
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) stat_modifiers: HashMap<i32, f32>,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) stat_modifiers: HashMap<i32, f32>,
 		}
 	}
 }
@@ -997,11 +1002,11 @@ define_packet! {
 			required back_right: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -1017,12 +1022,12 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) config_id: String,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) config_id: String,
 		}
 	}
 }
@@ -1039,11 +1044,11 @@ define_packet! {
 			required entity_target: InteractionTarget,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -1057,8 +1062,8 @@ define_packet! {
 			required interrupt_recharge: bool,
 		}
 		variable {
-			opt cooldown_id: String,
-			opt charge_times: Vec<f32>,
+			opt(1) cooldown_id: String,
+			opt(2) charge_times: Vec<f32>,
 		}
 	}
 }
@@ -1074,12 +1079,12 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) cooldown: InteractionCooldown
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) cooldown: InteractionCooldown
 		}
 	}
 }
@@ -1095,12 +1100,12 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) cooldown: InteractionCooldown
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) cooldown: InteractionCooldown
 		}
 	}
 }
@@ -1116,12 +1121,12 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) cooldown_id: String
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) cooldown_id: String
 		}
 	}
 }
@@ -1137,13 +1142,13 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) chain_id: String,
-			opt(6) flag: String,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) chain_id: String,
+			opt(64) flag: String,
 		}
 	}
 }
@@ -1163,12 +1168,12 @@ define_packet! {
 			required cooldown_increment_interrupt: bool,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) cooldown_id: String
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) cooldown_id: String
 		}
 	}
 }
@@ -1184,12 +1189,12 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) chain_id: String
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) chain_id: String
 		}
 	}
 }
@@ -1200,8 +1205,8 @@ define_packet! {
 			required allow_place_on_walls: bool
 		}
 		variable {
-			opt model: Model,
-			opt model_preview: Model
+			opt(1) model: Model,
+			opt(2) model_preview: Model
 		}
 	}
 }
@@ -1218,11 +1223,11 @@ define_packet! {
 			required root_interaction: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -1257,11 +1262,11 @@ define_packet! {
 			required camera_interaction_time: f32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -1278,14 +1283,14 @@ define_packet! {
 			required max_distance: f32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 			// DeployableConfig is too big due to the Models it containts, it causes the this enum variant's size to shoot up to over 1688 without boxing. With boxing it's lower than 200, which is what we want & makes clippy happy.
-			opt(5) deployable_config: Box<DeployableConfig>,
-			opt(6) costs: HashMap<i32, f32>,
+			opt(32) deployable_config: Box<DeployableConfig>,
+			opt(64) costs: HashMap<i32, f32>,
 		}
 	}
 }
@@ -1301,12 +1306,12 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
-			opt(5) memories_next: HashMap<i32, i32>,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
+			opt(32) memories_next: HashMap<i32, i32>,
 		}
 	}
 }
@@ -1322,11 +1327,11 @@ define_packet! {
 			required failed: i32,
 		}
 		variable {
-			opt(0) effects: InteractionEffects,
-			opt(1) settings: HashMap<GameMode, InteractionSettings>,
-			opt(2) rules: InteractionRules,
-			opt(3) tags: Vec<i32>,
-			opt(4) camera: InteractionCameraSettings,
+			opt(1) effects: InteractionEffects,
+			opt(2) settings: HashMap<GameMode, InteractionSettings>,
+			opt(4) rules: InteractionRules,
+			opt(8) tags: Vec<i32>,
+			opt(16) camera: InteractionCameraSettings,
 		}
 	}
 }

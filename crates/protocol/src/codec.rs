@@ -711,6 +711,8 @@ impl<T: HytaleCodec + Copy> HytaleCodec for OrderedFloat<T> {
 // Tuples
 macro_rules! tuple_codec_impl {
     ($($name:ident),+) => {
+	    // Trailing commas are necessary for this to work with single-element tuples. All tuple definitions must end with a trailing comma.
+	    // This one is fine       v   since it's not a tuple, it's just the generic parameter list.
 		impl<$($name: HytaleCodec),+> HytaleCodec for ($($name,)+) {
 			fn encode(&self, buf: &mut BytesMut) {
 				#[allow(non_snake_case)] // It's a lot of work to make the names snake_case while keeping the types UpperCamelCase

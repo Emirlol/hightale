@@ -384,7 +384,7 @@ impl HytaleCodec for String {
 }
 
 /// A wrapper for ASCII strings stored as Bytes.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AsciiString(Bytes);
 
 impl TryFrom<Bytes> for AsciiString {
@@ -396,6 +396,18 @@ impl TryFrom<Bytes> for AsciiString {
 		} else {
 			Err(PacketError::NonAscii)
 		}
+	}
+}
+
+impl Display for AsciiString {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.as_str())
+	}
+}
+
+impl Debug for AsciiString {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.as_str())
 	}
 }
 
@@ -519,7 +531,7 @@ impl<T: HytaleCodec> HytaleCodec for BitOptionVec<T> {
 
 /// Wrapper for fixed-length strings (char array in C-like protocols).
 /// Encodes as exactly N bytes, padding with nulls if shorter, truncating if longer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FixedAscii<const N: usize>(pub [u8; N]);
 
 impl<const N: usize> From<&str> for FixedAscii<N> {
@@ -534,6 +546,15 @@ impl<const N: usize> From<&str> for FixedAscii<N> {
 }
 
 impl<const N: usize> Display for FixedAscii<N> {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		// Find the first null byte to determine "real" length
+		let len = self.0.iter().position(|&b| b == 0).unwrap_or(N);
+		let s = String::from_utf8_lossy(&self.0[..len]);
+		write!(f, "{}", s)
+	}
+}
+
+impl<const N: usize> Debug for FixedAscii<N> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		// Find the first null byte to determine "real" length
 		let len = self.0.iter().position(|&b| b == 0).unwrap_or(N);

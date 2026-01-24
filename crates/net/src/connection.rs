@@ -86,7 +86,7 @@ impl PlayerConnection {
 			bail!("Protocol Mismatch");
 		}
 
-		self.username = connect.username;
+		self.username = connect.username.to_string();
 		self.uuid = connect.uuid;
 		info!("Login Request: {} ({})", self.username, self.uuid);
 

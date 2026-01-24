@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 
-use bytes::Buf;
+use bytes::{Buf, Bytes};
 use uuid::Uuid;
 use macros::define_packet;
 use crate::{
@@ -11,6 +11,7 @@ use crate::{
 		InstantData,
 	},
 };
+use crate::codec::AsciiString;
 
 define_enum! {
 	pub enum ClientType {
@@ -27,10 +28,10 @@ define_packet! {
 			required uuid: Uuid,
 		}
 		variable {
-			opt(1) language: String,
+			opt(1) language: AsciiString,
 			opt(2) identity_token: String,
-			required username: String,
-			opt(4) referral_data: Vec<u8>,
+			required username: AsciiString,
+			opt(4) referral_data: Bytes,
 			opt(8) referral_source: HostAddress
 		}
 	}

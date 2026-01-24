@@ -346,7 +346,7 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 						use #packet_context;
 						let remaining = buf.remaining();
 						if remaining < <Self as #fixed_size>::SIZE {
-							Err(#packet_error::incomplete_bytes_exact(remaining, remaining))
+							Err(#packet_error::incomplete_bytes_exact(remaining, <Self as #fixed_size>::SIZE))
 						} else {
 							Ok(Self {
 								#(
@@ -431,10 +431,16 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 				quote! {}
 			};
 
+			let offsets_size = if variable_block.len() <= 1 {
+				0usize
+			} else {
+				variable_block.len() * 4 // 4 bytes per offset
+			};
+
 			let impl_block = quote!(
 				impl #name {
 					const MASK_SIZE: usize = #final_mask_size;
-					const FIXED_BLOCK_SIZE: usize = 0usize #( + #size_iter )*;
+					const FIXED_BLOCK_SIZE: usize = 0usize #( + #size_iter )* + #offsets_size;
 				}
 
 				#impl_fixed_size
@@ -538,10 +544,10 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 								};
 
 								let consumed = start - buf.remaining();
-								if consumed > #padding { return Err(#packet_error::decoded_more_than_padding(consumed, consumed)).context(#name_str); }
+								if consumed > #padding { return Err(#packet_error::decoded_more_than_padding(consumed, #padding)).context(#name_str); }
 								let padding = #padding - consumed;
 								let remaining = buf.remaining();
-								if remaining < padding { return Err(#packet_error::incomplete_bytes(remaining, remaining)).context(#name_str); }
+								if remaining < padding { return Err(#packet_error::incomplete_bytes(remaining, padding)).context(#name_str); }
 								buf.advance(padding);
 
 								val
@@ -588,12 +594,12 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 					let main_body = quote! {
 						let target_offset = offsets[var_idx];
 						if target_offset < var_read_bytes {
-							return Err(#packet_error::incomplete_bytes(var_read_bytes, target_offset)).context(#name_str);
+							return Err(#packet_error::incomplete_bytes(target_offset, var_read_bytes)).context(#name_str);
 						}
 
 						let skip = (target_offset - var_read_bytes) as usize;
 						let remaining = buf.remaining();
-						if remaining < skip { return Err(#packet_error::incomplete_bytes(remaining, remaining)).context(#name_str); }
+						if remaining < skip { return Err(#packet_error::incomplete_bytes(remaining, skip)).context(#name_str); }
 						buf.advance(skip);
 						var_read_bytes += skip as u32;
 
@@ -616,7 +622,12 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 						}
 					}
 				});
-				quote! { #(let #variable_block_name = #variable_decode;)* }
+				quote! {
+					#(
+						let #variable_block_name = #variable_decode;
+						var_idx += 1;
+					)*
+				}
 			};
 
 			let variable_encode = if variable_block.len() == 1 {

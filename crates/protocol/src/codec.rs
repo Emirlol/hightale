@@ -72,6 +72,8 @@ pub enum PacketError {
 	InvalidVarInt,
 	#[error("UTF8 Error: {0}")]
 	Utf8(#[from] FromUtf8Error),
+	#[error("Non-ASCII character in ASCII string")]
+	NonAscii,
 }
 
 impl PacketError {
@@ -378,6 +380,71 @@ impl HytaleCodec for String {
 		let bytes = buf.copy_to_bytes(len);
 		let str = String::from_utf8(bytes.to_vec())?;
 		Ok(str)
+	}
+}
+
+/// A wrapper for ASCII strings stored as Bytes.
+#[derive(Debug, Clone)]
+pub struct AsciiString(Bytes);
+
+impl TryFrom<Bytes> for AsciiString {
+	type Error = PacketError;
+
+	fn try_from(value: Bytes) -> Result<Self, Self::Error> {
+		if value.iter().all(|&b| b.is_ascii()) {
+			Ok(AsciiString(value))
+		} else {
+			Err(PacketError::NonAscii)
+		}
+	}
+}
+
+impl AsciiString {
+	pub fn as_str(&self) -> &str {
+		// Validated on creation
+		unsafe { str::from_utf8_unchecked(&self.0) }
+	}
+}
+
+impl AsRef<str> for AsciiString {
+	fn as_ref(&self) -> &str {
+		self.as_str()
+	}
+}
+
+impl Deref for AsciiString {
+	type Target = str;
+
+	fn deref(&self) -> &Self::Target {
+		self.as_str()
+	}
+}
+
+impl HytaleCodec for AsciiString {
+	fn encode(&self, buf: &mut BytesMut) {
+		VarInt(self.0.len() as i32).encode(buf);
+		buf.put_slice(&self.0);
+	}
+
+	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
+		let len_raw = VarInt::decode(buf)?.0;
+		if len_raw < 0 {
+			return Err(PacketError::negative_length(len_raw));
+		}
+		if len_raw > MAX_SIZE {
+			return Err(PacketError::string_too_long(len_raw, MAX_SIZE));
+		}
+		let len = len_raw as usize;
+		let remaining = buf.remaining();
+		if remaining < len {
+			return Err(PacketError::incomplete_bytes_exact(remaining, len));
+		}
+		let bytes = buf.copy_to_bytes(len);
+		if bytes.iter().all(|&b| b.is_ascii()) {
+			Ok(AsciiString(bytes))
+		} else {
+			Err(PacketError::NonAscii)
+		}
 	}
 }
 

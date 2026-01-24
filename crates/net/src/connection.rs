@@ -41,8 +41,6 @@ use uuid::Uuid;
 
 use crate::auth::ServerAuthManager;
 
-const EXPECTED_HASH: FixedAscii<64> = FixedAscii(*b"6708f121966c1c443f4b0eb525b2f81d0a8dc61f5003a692a8fa157e5e02cea9");
-
 pub struct PlayerConnection {
 	conn: Connection,
 	send: SendStream,
@@ -80,10 +78,40 @@ impl PlayerConnection {
 			}
 		};
 
-		if connect.protocol_hash != EXPECTED_HASH {
-			warn!("Protocol mismatch: {}", connect.protocol_hash);
-			self.kick("Protocol Version Mismatch").await?;
-			bail!("Protocol Mismatch");
+		if connect.protocol_crc != v2::PROTOCOL_CRC {
+			warn!(
+				"Client {} has incompatible protocol CRC: expected {:08X}, got {:08X}",
+				connect.username,
+				v2::PROTOCOL_CRC,
+				connect.protocol_crc
+			);
+			self.kick("Incompatible Client Version").await?;
+			return Err(anyhow!("Incompatible protocol CRC"));
+		}
+
+		if connect.protocol_build_number != v2::PROTOCOL_BUILD_NUMBER {
+			warn!(
+				"Client {} has incompatible protocol build number: expected {}, got {}",
+				connect.username,
+				v2::PROTOCOL_BUILD_NUMBER,
+				connect.protocol_build_number
+			);
+			self.kick("Incompatible Client Version").await?;
+			return Err(anyhow!("Incompatible protocol build number"));
+		}
+
+		if connect.referral_data.is_some() {
+			if let Some(host_addr) = connect.referral_source {
+				if host_addr.host.is_empty() {
+					warn!("Client {} sent referral data with empty referral source", connect.username);
+					self.kick("Referral source address is invalid").await?;
+					return Err(anyhow!("Invalid referral data"));
+				}
+			} else {
+				warn!("Client {} sent referral data without referral source", connect.username);
+				self.kick("Referral connections must include source server address").await?;
+				return Err(anyhow!("Invalid referral data"));
+			};
 		}
 
 		self.username = connect.username.to_string();

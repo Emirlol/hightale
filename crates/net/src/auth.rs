@@ -40,7 +40,8 @@ use tracing::{
 };
 use uuid::Uuid;
 
-use crate::api::SessionService;
+use crate::api::{OAuthTokenResponse, SessionService};
+use crate::oauth;
 
 #[derive(Debug, Clone)]
 pub struct ServerSession {
@@ -52,23 +53,8 @@ pub struct ServerSession {
 }
 
 #[derive(Deserialize)]
-struct OAuthTokenResponse {
-	access_token: String,
-	refresh_token: Option<String>,
-	id_token: Option<String>,
-	expires_in: i64,
-	// error fields might be present in error cases, handled by reqwest error checking usually
-}
-
-#[derive(Deserialize)]
 struct JwtClaims {
 	exp: Option<i64>,
-}
-
-#[derive(Serialize)]
-struct StatePayload {
-	state: String,
-	port: String,
 }
 
 pub struct ServerAuthManager {
@@ -180,6 +166,63 @@ impl ServerAuthManager {
 		}
 	}
 
+	pub async fn start_browser_flow(self: &Arc<Self>) -> Result<String> {
+		let (url, pending_state, rx_code) = oauth::start_listener()?;
+
+		let manager = self.clone();
+
+		tokio::spawn(async move {
+			info!("Waiting for browser login...");
+
+			match rx_code.await {
+				Ok(code) => {
+					info!("Code received. Exchanging for tokens...");
+
+					match oauth::exchange_code(&code, &pending_state).await {
+						Ok(tokens) => {
+							if let Err(e) = manager.complete_login(tokens).await {
+								error!("Failed to complete login session: {}", e);
+							} else {
+								info!("Browser authentication finished successfully!");
+							}
+						}
+						Err(e) => error!("OAuth exchange failed: {}", e),
+					}
+				}
+				Err(_) => error!("Login listener cancelled or failed.")
+			}
+		});
+
+		Ok(url)
+	}
+
+	async fn complete_login(self: &Arc<Self>, tokens: OAuthTokenResponse) -> Result<()> {
+		let profiles = self.api.get_game_profiles(&tokens.access_token).await?;
+		let profile = profiles.first().ok_or(anyhow::anyhow!("No game profiles found"))?;
+
+		info!("Selected Profile: {}", profile.username);
+
+		let game_session = self.api.create_game_session(&tokens.access_token, profile.uuid).await?;
+
+		let id_token = tokens.id_token.ok_or(anyhow::anyhow!("Missing ID token"))?;
+		let server_id = parse_sub_from_jwt(&id_token)?;
+
+		let session = ServerSession {
+			session_token: game_session.session_token,
+			identity_token: game_session.identity_token,
+			refresh_token: tokens.refresh_token,
+			server_id,
+			expires_at: Some(chrono::Utc::now() + chrono::Duration::seconds(tokens.expires_in)),
+		};
+
+		*self.session.write() = Some(session);
+		// Start the refresh loop since we are now logged in
+		self.clone().spawn_refresh_loop();
+
+		Ok(())
+	}
+
+
 	/// Performs the HTTP Refresh call
 	async fn perform_refresh(&self) -> Result<()> {
 		// Read current token
@@ -207,150 +250,6 @@ impl ServerAuthManager {
 		}
 
 		info!("Session token refreshed successfully.");
-		Ok(())
-	}
-
-	/// Starts the OAuth flow.
-	/// Returns the URL the user needs to visit.
-	/// Starts a background thread to listen for the callback.
-	pub async fn start_browser_flow(self: &Arc<Self>) -> Result<String> {
-		let mut rng = rand::rng();
-		let mut state_buf = [0u8; 16]; // 32 chars
-		rng.fill_bytes(&mut state_buf);
-		let state: String = hex::encode(state_buf);
-
-		let mut code_verifier_buf = [0u8; 32]; // 64 chars
-		rng.fill_bytes(&mut code_verifier_buf);
-		let code_verifier: String = hex::encode(code_verifier_buf);
-
-		let mut hasher = Sha256::new();
-		hasher.update(code_verifier.as_bytes());
-		let challenge_bytes = hasher.finalize();
-		let code_challenge = URL_SAFE_NO_PAD.encode(challenge_bytes);
-
-		let server = Server::http("127.0.0.1:0").map_err(|e| anyhow::anyhow!("Failed to start callback server: {}", e))?;
-
-		let port = match server.server_addr() {
-			ListenAddr::IP(a) => a.port(),
-			#[cfg(unix)]
-			ListenAddr::Unix(_) => return Err(anyhow::anyhow!("Callback server is listening on a Unix socket, not TCP")), // Should not happen, but just in case
-		};
-
-		let redirect_uri = "https://accounts.hytale.com/consent/client";
-
-		let state_payload = StatePayload {
-			state: state.clone(),
-			port: port.to_string(),
-		};
-		let state_json = serde_json::to_string(&state_payload)?;
-		let encoded_state = URL_SAFE_NO_PAD.encode(state_json);
-
-		let auth_url = format!(
-			"https://oauth.accounts.hytale.com/oauth2/auth?response_type=code&client_id=hytale-server&redirect_uri={}&state={}&scope=openid+offline+auth:server&code_challenge={}&code_challenge_method=S256",
-			urlencoding::encode(redirect_uri),
-			encoded_state,
-			code_challenge
-		);
-
-		let auth_manager = self.clone();
-		let expected_raw_state = state.clone();
-
-		tokio::task::spawn_blocking(move || {
-			if let Ok(request) = server.recv() {
-				let url = request.url().to_string();
-
-				if let Ok(parsed_url) = url::Url::parse(&format!("http://localhost{}", url)) {
-					let pairs: std::collections::HashMap<_, _> = parsed_url.query_pairs().collect();
-
-					let code = pairs.get("code").map(|c| c.to_string());
-					let ret_state = pairs.get("state").map(|s| s.to_string());
-
-					if let Some(code) = code
-						&& let Some(ret_state) = ret_state
-						&& ret_state == expected_raw_state
-					{
-						// We're in a blocking thread, so we need to enter the async runtime
-						let rt_handle = tokio::runtime::Handle::current();
-						let exchange_result = rt_handle.block_on(async { auth_manager.exchange_code(&code, &code_verifier, redirect_uri).await });
-
-						match exchange_result {
-							Ok(_) => {
-								let _ = request.respond(
-									Response::from_string(
-										"<html><body><h1 style='color:green'>Authentication Successful!</h1><p>You can return to the console.</p><script>window.close()</script></body></html>",
-									)
-									.with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]).unwrap()),
-								);
-							}
-							Err(e) => {
-								error!("Token exchange failed: {}", e);
-								let _ = request.respond(Response::from_string(format!("Token Exchange Failed: {}", e)));
-							}
-						}
-						return;
-					}
-				}
-
-				let _ = request.respond(Response::from_string("Login Failed or Invalid State."));
-			}
-		});
-
-		Ok(auth_url)
-	}
-
-	pub async fn exchange_code(&self, code: &str, code_verifier: &str, redirect_uri: &str) -> Result<()> {
-		info!("Exchanging authorization code for tokens...");
-
-		let params = [
-			("grant_type", "authorization_code"),
-			("client_id", "hytale-server"),
-			("code", code),
-			("redirect_uri", redirect_uri),
-			("code_verifier", code_verifier),
-		];
-
-		let response = self.http_client.post("https://oauth.accounts.hytale.com/oauth2/token").form(&params).send().await?;
-
-		if !response.status().is_success() {
-			let status = response.status();
-			let text = response.text().await.unwrap_or_default();
-			return Err(anyhow!("OAuth Error {}: {}", status, text));
-		}
-
-		let token_data: OAuthTokenResponse = response.json().await.context("Failed to parse OAuth response")?;
-
-		info!("Fetching Game Profiles...");
-		let profiles = self.api.get_game_profiles(&token_data.access_token).await?;
-
-		// Auto-select first profile (Java logic does this if --owner-uuid not set)
-		let profile = profiles.first().ok_or(anyhow!("No game profiles found on this account"))?;
-		info!("Selected Profile: {} ({})", profile.username, profile.uuid);
-
-		// Extract Identity to get Server ID (Audience)
-		let id_token = token_data.id_token.ok_or(anyhow!("Missing id_token in response"))?;
-
-		// Parse the JWT to get the 'sub' (Server UUID)
-		// We use a simplified parse here (assuming signature validation isn't strictly required for self-obtained token,
-		// OR reuse the validation logic from previous steps if strictness is needed).
-		let server_id = parse_sub_from_jwt(&id_token)?;
-
-		info!("Creating Game Session...");
-		let game_session = self.api.create_game_session(&token_data.access_token, profile.uuid).await.context("Failed to create game session")?;
-
-		let session = ServerSession {
-			session_token: game_session.session_token,
-			identity_token: game_session.identity_token,
-			refresh_token: token_data.refresh_token,
-			server_id,
-			expires_at: Some(Utc::now() + chrono::Duration::seconds(token_data.expires_in)),
-		};
-
-		{
-			let mut lock = self.session.write();
-			*lock = Some(session);
-		}
-
-		info!("Successfully authenticated as server ID: {}", server_id);
 		Ok(())
 	}
 
@@ -402,7 +301,7 @@ fn parse_jwt_expiry(token: &str) -> Result<Option<DateTime<Utc>>> {
 }
 
 /// Helper to extract the Subject UUID from the JWT without full validation
-fn parse_sub_from_jwt(token: &str) -> Result<Uuid> {
+pub(crate) fn parse_sub_from_jwt(token: &str) -> Result<Uuid> {
 	let parts: Vec<&str> = token.split('.').collect();
 	if parts.len() != 3 {
 		bail!("Invalid JWT format");

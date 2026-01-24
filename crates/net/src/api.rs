@@ -61,6 +61,15 @@ struct AccessTokenResponse {
 	access_token: String,
 }
 
+#[derive(Deserialize)]
+pub struct OAuthTokenResponse {
+	pub(crate) access_token: String,
+	pub(crate) refresh_token: Option<String>,
+	pub(crate) id_token: Option<String>,
+	pub(crate) expires_in: i64,
+	// error fields might be present in error cases, handled by reqwest error checking usually
+}
+
 pub struct SessionService {
 	client: Client,
 	session_url: String,

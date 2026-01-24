@@ -38,55 +38,7 @@ use crate::{
 	connection::PlayerConnection,
 	tls::ServerCert,
 };
-
-/// A verifier that requests a client certificate but trusts ANYTHING.
-/// This matches Java's `InsecureTrustManagerFactory.INSTANCE` behavior.
-#[derive(Debug)]
-struct AllowAnyClientCertVerifier {
-	supported_algs: WebPkiSupportedAlgorithms,
-}
-
-impl AllowAnyClientCertVerifier {
-	fn new() -> Self {
-		Self {
-			supported_algs: rustls::crypto::CryptoProvider::get_default()
-				.expect("No default crypto provider found")
-				.signature_verification_algorithms,
-		}
-	}
-}
-
-impl ClientCertVerifier for AllowAnyClientCertVerifier {
-	fn offer_client_auth(&self) -> bool {
-		true
-	}
-
-	fn client_auth_mandatory(&self) -> bool {
-		true
-	}
-
-	fn root_hint_subjects(&self) -> &[DistinguishedName] {
-		&[]
-	}
-
-	fn verify_client_cert(&self, _end_entity: &CertificateDer<'_>, _intermediates: &[CertificateDer<'_>], _now: rustls::pki_types::UnixTime) -> Result<ClientCertVerified, rustls::Error> {
-		// Blindly trust the client certificate.
-		// We only need it to extract the public key/fingerprint later for Auth.
-		Ok(ClientCertVerified::assertion())
-	}
-
-	fn verify_tls12_signature(&self, message: &[u8], cert: &CertificateDer<'_>, dss: &DigitallySignedStruct) -> std::result::Result<HandshakeSignatureValid, Error> {
-		rustls::crypto::verify_tls12_signature(message, cert, dss, &self.supported_algs)
-	}
-
-	fn verify_tls13_signature(&self, message: &[u8], cert: &CertificateDer<'_>, dss: &DigitallySignedStruct) -> std::result::Result<HandshakeSignatureValid, Error> {
-		rustls::crypto::verify_tls13_signature(message, cert, dss, &self.supported_algs)
-	}
-
-	fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-		self.supported_algs.supported_schemes()
-	}
-}
+use crate::tls::AllowAnyClientCertVerifier;
 
 pub struct QuicServer {
 	endpoint: Endpoint,
@@ -100,12 +52,12 @@ impl QuicServer {
 		let ServerCert { chain, key, fingerprint: _ } = cert;
 
 		let mut tls = rustls::ServerConfig::builder()
-			.with_client_cert_verifier(Arc::new(AllowAnyClientCertVerifier::new()))
+			.with_client_cert_verifier(Arc::new(AllowAnyClientCertVerifier::default()))
 			.with_single_cert(chain, key)
 			.context("Failed to create TLS config")?;
 
 		// Make sure only clients speaking "hytale" can connect.
-		tls.alpn_protocols = vec![b"hytale/1".to_vec()];
+		tls.alpn_protocols = vec![b"hytale/2".to_vec(), b"hytale/1".to_vec()];
 
 		let mut server_config = ServerConfig::with_crypto(Arc::new(QuicServerConfig::try_from(tls)?));
 

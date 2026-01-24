@@ -577,7 +577,7 @@ define_packet! {
 		}
 	}
 }
-A
+
 define_packet! {
 	AssetEditorUpdateSecondsPerGameDay {
 		daytime_duration_seconds: i32,

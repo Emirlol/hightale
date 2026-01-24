@@ -6,7 +6,7 @@ use macros::define_packet;
 use crate::{
 	codec::FixedAscii,
 	define_enum,
-	v1::{
+	v2::{
 		HostAddress,
 		InstantData,
 	},
@@ -21,21 +21,24 @@ define_enum! {
 }
 
 define_packet! {
-	Connect {
-		fixed {
-			required protocol_hash: FixedAscii<64>,
-			required client_type: ClientType,
-			required uuid: Uuid,
-		}
-		variable {
-			opt(1) language: AsciiString,
-			opt(2) identity_token: String,
-			required username: AsciiString,
-			opt(4) referral_data: Bytes,
-			opt(8) referral_source: HostAddress
-		}
-	}
+    Connect {
+        fixed {
+            required protocol_crc: i32,
+            required protocol_build_number: i32,
+            required client_version: FixedAscii<20>,
+            required client_type: ClientType,
+            required uuid: Uuid,
+        }
+        variable {
+            required username: AsciiString,
+            opt(1) identity_token: String,
+            required language: AsciiString,
+            opt(2) referral_data: Bytes,
+            opt(4) referral_source: HostAddress
+        }
+    }
 }
+
 
 define_enum! {
 	pub enum DisconnectType {

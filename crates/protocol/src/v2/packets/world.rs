@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::{
 	define_enum,
-	v1::{
+	v2::{
 		BlockParticleEvent,
 		Color,
 		DirectionF,

@@ -1,6 +1,6 @@
 use macros::define_packet;
 
-use crate::v1::{
+use crate::v2::{
 	inventory::InventorySection,
 	ExtraResources,
 	SortType,

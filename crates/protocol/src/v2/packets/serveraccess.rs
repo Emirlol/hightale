@@ -2,7 +2,7 @@ use macros::define_packet;
 
 use crate::{
 	define_enum,
-	v1::HostAddress,
+	v2::HostAddress,
 };
 
 define_enum! {

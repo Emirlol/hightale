@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use macros::define_packet;
 
-use crate::v1::HostAddress;
+use crate::v2::HostAddress;
 
 define_packet! {
 	AuthGrant {

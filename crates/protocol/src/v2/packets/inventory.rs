@@ -4,7 +4,7 @@ use macros::define_packet;
 
 use crate::{
 	define_enum,
-	v1::{
+	v2::{
 		ItemQuantity,
 		ItemWithAllMetadata,
 		SortType,

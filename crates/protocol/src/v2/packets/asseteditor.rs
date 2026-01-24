@@ -6,7 +6,7 @@ use ordered_float::OrderedFloat;
 
 use crate::{
 	define_enum,
-	v1::{
+	v2::{
 		BlockType,
 		FormattedMessage,
 		InstantData,
@@ -107,11 +107,11 @@ define_packet! {
 	AssetEditorCreateAsset {
 		fixed {
 			req token: i32,
-			opt(4) rebuild_caches: AssetEditorRebuildCaches
+			opt(1) rebuild_caches: AssetEditorRebuildCaches
 		}
 		variable {
-			opt(1) path: AssetPath,
-			opt(2) data: Bytes,
+			opt(2) path: AssetPath,
+			opt(4) data: Bytes,
 			opt(8) button_id: String
 		}
 	}
@@ -568,16 +568,16 @@ define_packet! {
 define_packet! {
 	AssetEditorUpdateModelPreview {
 		fixed {
-			opt(8) camera: AssetEditorPreviewCameraSettings
+			opt(1) camera: AssetEditorPreviewCameraSettings
 		}
 		variable {
-			opt(1) path: AssetPath,
-			opt(2) model: Box<Model>,
-			opt(4) block: Box<BlockType>,
+			opt(2) path: AssetPath,
+			opt(4) model: Box<Model>,
+			opt(8) block: Box<BlockType>,
 		}
 	}
 }
-
+A
 define_packet! {
 	AssetEditorUpdateSecondsPerGameDay {
 		daytime_duration_seconds: i32,
@@ -654,13 +654,13 @@ define_packet! {
 	JsonUpdateCommand {
 		fixed {
 			req command_type: JsonUpdateType,
-			opt(16) rebuild_caches: AssetEditorRebuildCaches
+			opt(1) rebuild_caches: AssetEditorRebuildCaches
 		}
 		variable {
-			opt(1) path: Vec<String>,
-			opt(2) value: String,
-			opt(4) previous_value: String,
-			opt(8) first_created_property: Vec<String>
+			opt(2) path: Vec<String>,
+			opt(4) value: String,
+			opt(8) previous_value: String,
+			opt(16) first_created_property: Vec<String>
 		}
 	}
 }
@@ -676,6 +676,8 @@ define_enum! {
 define_packet! {
 	SchemaFile {
 		variable {
+			// For some reason, v2 has the max length of this at 16777215, but I don't know how we can easily change the max length for strings.
+			// TODO: Consider how we can add different max lengths for variable length items.
 			opt(1) content: String
 		}
 	}

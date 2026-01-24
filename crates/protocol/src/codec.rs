@@ -24,7 +24,7 @@ use ordered_float::OrderedFloat;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::v1::MAX_SIZE;
+use crate::v2::MAX_SIZE;
 
 // A helper trait to allow casting from any primitive to your specific types
 pub trait PacketNum {

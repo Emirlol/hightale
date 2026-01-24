@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
 	define_enum,
-	v1::{
+	v2::{
 		CraftingRecipe,
 		FormattedMessage,
 		ItemWithAllMetadata,
@@ -336,11 +336,11 @@ define_packet! {
 	ServerPlayerListPlayer {
 		fixed {
 			required uuid: Uuid,
-			opt(2) world_uuid: Uuid,
+			opt(1) world_uuid: Uuid,
 			required pin: i32,
 		}
 		variable {
-			opt(1) username: String,
+			opt(2) username: String,
 		}
 	}
 }

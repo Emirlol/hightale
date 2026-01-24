@@ -1,7 +1,7 @@
 use macros::define_packet;
 use uuid::Uuid;
 
-use crate::v1::{
+use crate::v2::{
 	BlockRotation,
 	DamageCause,
 	DebugShape,
@@ -84,12 +84,12 @@ define_packet! {
 	DisplayDebug {
 		fixed {
 			required shape: DebugShape,
-			opt(2) color: Vector3f,
+			opt(1) color: Vector3f,
 			required time: f32,
 			required fade: bool
 		}
 		variable {
-			opt(1) matrix: Vec<f32>,
+			opt(2) matrix: Vec<f32>,
 			opt(4) frustum_projection: Vec<f32>,
 		}
 	}
@@ -108,13 +108,13 @@ define_packet! {
 		fixed {
 			required client_timestamp: i64,
 			required active_slot: i32,
-			opt(2) screen_point: Vector2f,
-			opt(4) mouse_button: MouseButtonEvent,
-			opt(16) world_interaction: WorldInteraction,
+			opt(1) screen_point: Vector2f,
+			opt(2) mouse_button: MouseButtonEvent,
+			opt(4) world_interaction: WorldInteraction,
 		}
 		variable {
-			opt(1) item_in_hand_id: String,
-			opt(8) mouse_motion: MouseMotionEvent,
+			opt(8) item_in_hand_id: String,
+			opt(16) mouse_motion: MouseMotionEvent,
 		}
 	}
 }
@@ -154,6 +154,10 @@ define_packet! { SyncPlayerPreferences {
 	misc_items_preferred_pickup_location: PickupLocation,
 	allow_npc_detection: bool,
 	respond_to_hit: bool,
+	hide_helmet: bool,
+	hide_cuirass: bool,
+	hide_gauntlets: bool,
+	hide_pants: bool,
 } }
 
 define_packet! { UpdateMemoriesFeatureStatus { is_feature_unlock: bool } }

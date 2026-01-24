@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use macros::define_packet;
 
-use crate::v1::{
+use crate::v2::{
 	AmbienceFX,
 	AudioCategory,
 	BlockBreakingDecal,

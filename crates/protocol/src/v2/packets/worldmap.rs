@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use bytes::Buf;
 use macros::define_packet;
 
-use crate::v1::Transform;
+use crate::v2::Transform;
 
 define_packet! { BiomeData {
 	fixed {
@@ -42,12 +42,12 @@ define_packet! { MapImage {
 } }
 define_packet! { MapMarker {
 	fixed {
-		opt(8) transform: Transform
+		opt(1) transform: Transform
 	}
 	variable {
-		opt(1) id: String,
-		opt(2) name: String,
-		opt(4) marker_image: String,
+		opt(2) id: String,
+		opt(4) name: String,
+		opt(8) marker_image: String,
 		opt(16) context_menu_items: Vec<ContextMenuItem>
 	}
 } }

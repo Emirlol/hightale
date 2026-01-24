@@ -5,7 +5,7 @@ use macros::define_packet;
 
 use crate::{
 	define_enum,
-	v1::Asset,
+	v2::Asset,
 };
 
 // Simple signal packet with no data
@@ -39,6 +39,10 @@ define_enum! {
 		SafetyRoll= 4,
 		DisplayHealthBars = 5,
 		DisplayCombatText = 6,
+		CanHideHelmet = 7,
+		CanHideCuirass = 8,
+		CanHideGauntlets = 9,
+		CanHidePants = 10,
 	}
 }
 

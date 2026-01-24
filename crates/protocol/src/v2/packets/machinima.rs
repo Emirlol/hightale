@@ -3,7 +3,7 @@ use macros::define_packet;
 
 use crate::{
 	define_enum,
-	v1::Model,
+	v2::Model,
 };
 
 define_packet! { RequestMachinimaActorModel {

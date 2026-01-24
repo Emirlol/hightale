@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use bytes::Buf;
 use uuid::Uuid;
 use macros::define_packet;
-use crate::v1::{
+use crate::v2::{
 	BlockFace,
 	BlockRotation,
 	DirectionF,
@@ -132,19 +132,19 @@ define_packet! {
 			required charge_value: f32,
 			required chaining_index: i32,
 			required flag_index: i32,
-			opt(0, 16) attacker_pos: PositionF,
-			opt(0, 32) attacker_rot: DirectionF,
-			opt(0, 64) raycast_hit: PositionF,
+			opt(0, 4) attacker_pos: PositionF,
+			opt(0, 8) attacker_rot: DirectionF,
+			opt(0, 16) raycast_hit: PositionF,
 			required raycast_distance: f32,
-			opt(0, 128) raycast_normal: Vector3f,
+			opt(0, 32) raycast_normal: Vector3f,
 			required movement_direction: MovementDirection,
 			required apply_force_state: ApplyForceState,
 			required next_label: i32,
-			opt(1, 1) generated_uuid: Uuid,
+			opt(0, 64) generated_uuid: Uuid,
 		}
 		variable {
-			opt(0, 4) fork_counts: HashMap<InteractionType, i32>,
-			opt(0, 8) hit_entities: Vec<SelectedHitEntity>,
+			opt(0, 128) fork_counts: HashMap<InteractionType, i32>,
+			opt(1, 1) hit_entities: Vec<SelectedHitEntity>,
 		}
 	}
 }
@@ -155,12 +155,12 @@ define_packet! {
 			required entity_id: i32,
 			required proxy_id: Uuid,
 			opt(1) hit_location: Vector3f,
-			opt(4) block_position: Vector3i,
+			opt(2) block_position: Vector3i,
 			required target_slot: i32,
-			opt(8) hit_normal: Vector3f,
+			opt(4) hit_normal: Vector3f,
 		}
 		variable {
-			opt(2) hit_detail: String
+			opt(8) hit_detail: String
 		}
 	}
 }

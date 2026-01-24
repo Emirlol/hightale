@@ -5,7 +5,7 @@ use macros::define_packet;
 use crate::{
 	define_enum,
 	id_dispatch,
-	v1::{
+	v2::{
 		camera::CameraShakeEffect,
 		entities::{
 			ChangeVelocityType,
@@ -42,16 +42,16 @@ define_packet! {
 			required wait_for_animation_to_finish: bool,
 			required clear_animation_on_finish: bool,
 			required clear_sound_event_on_finish: bool,
-			opt(32) camera_shake: CameraShakeEffect,
-			opt(64) movement_effects: MovementEffects,
+			opt(1) camera_shake: CameraShakeEffect,
+			opt(2) movement_effects: MovementEffects,
 			required start_delay: f32,
 		}
 		variable {
-			opt(1) particles: Vec<ModelParticle>,
-			opt(2) first_person_particles: Vec<ModelParticle>,
-			opt(4) trails: Vec<ModelTrail>,
-			opt(8) item_player_animations_id: String,
-			opt(16) item_animation_id: String,
+			opt(4) particles: Vec<ModelParticle>,
+			opt(8) first_person_particles: Vec<ModelParticle>,
+			opt(16) trails: Vec<ModelTrail>,
+			opt(32) item_player_animations_id: String,
+			opt(64) item_animation_id: String,
 		}
 	}
 }
@@ -275,16 +275,16 @@ define_packet! {
 			required cancel_on_item_change: bool,
 			required next: i32,
 			required failed: i32,
-			opt(0, 32) required_game_mode: GameMode,
+			opt(0, 1) required_game_mode: GameMode,
 			required adjust_held_item_quantity: i32,
 			required adjust_held_item_durability: i32,
 		}
 		variable {
-			opt(0, 1) effects: InteractionEffects,
-			opt(0, 2) settings: HashMap<GameMode, InteractionSettings>,
-			opt(0, 4) rules: InteractionRules,
-			opt(0, 8) tags: Vec<i32>,
-			opt(0, 16) camera: InteractionCameraSettings,
+			opt(0, 2) effects: InteractionEffects,
+			opt(0, 4) settings: HashMap<GameMode, InteractionSettings>,
+			opt(0, 8) rules: InteractionRules,
+			opt(0, 16) tags: Vec<i32>,
+			opt(0, 32) camera: InteractionCameraSettings,
 			opt(0, 64) item_to_remove: ItemWithAllMetadata,
 			opt(0, 128) item_to_add: ItemWithAllMetadata,
 			opt(1, 1) broken_item: String
@@ -317,16 +317,16 @@ define_packet! {
 			required fail_on_damage: bool,
 			required mouse_sensitivity_adjustment_target: f32,
 			required mouse_sensitivity_adjustment_duration: f32,
-			opt(128) charging_delay: ChargingDelay
+			opt(1) charging_delay: ChargingDelay
 		}
 		variable {
-			opt(1) effects: InteractionEffects,
-			opt(2) settings: HashMap<GameMode, InteractionSettings>,
-			opt(4) rules: InteractionRules,
-			opt(8) tags: Vec<i32>,
-			opt(16) camera: InteractionCameraSettings,
-			opt(32) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
-			opt(64) forks: HashMap<InteractionType, i32>,
+			opt(2) effects: InteractionEffects,
+			opt(4) settings: HashMap<GameMode, InteractionSettings>,
+			opt(8) rules: InteractionRules,
+			opt(16) tags: Vec<i32>,
+			opt(32) camera: InteractionCameraSettings,
+			opt(64) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
+			opt(128) forks: HashMap<InteractionType, i32>,
 		}
 	}
 }
@@ -343,12 +343,12 @@ define_packet! {
 	WorldParticle {
 		fixed {
 			required scale: f32,
-			opt(2) color: Color,
-			opt(4) position_offset: Vector3f,
-			opt(8) rotation_offset: DirectionF,
+			opt(1) color: Color,
+			opt(2) position_offset: Vector3f,
+			opt(4) rotation_offset: DirectionF,
 		}
 		variable {
-			opt(1) system_id: String
+			opt(8) system_id: String
 		}
 	}
 }
@@ -380,18 +380,18 @@ define_packet! {
 			required fail_on_damage: bool,
 			required mouse_sensitivity_adjustment_target: f32,
 			required mouse_sensitivity_adjustment_duration: f32,
-			opt(0, 128) charging_delay: ChargingDelay,
+			opt(0, 1) charging_delay: ChargingDelay,
 			required has_modifiers: bool,
-			opt(1, 1) angled_wielding: AngledWielding
+			opt(0, 2) angled_wielding: AngledWielding
 		}
 		variable {
-			opt(0, 1) effects: InteractionEffects,
-			opt(0, 2) settings: HashMap<GameMode, InteractionSettings>,
-			opt(0, 4) rules: InteractionRules,
-			opt(0, 8) tags: Vec<i32>,
-			opt(0, 16) camera: InteractionCameraSettings,
-			opt(0, 32) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
-			opt(0, 64) forks: HashMap<InteractionType, i32>,
+			opt(0, 4) effects: InteractionEffects,
+			opt(0, 8) settings: HashMap<GameMode, InteractionSettings>,
+			opt(0, 16) rules: InteractionRules,
+			opt(0, 32) tags: Vec<i32>,
+			opt(0, 64) camera: InteractionCameraSettings,
+			opt(0, 128) charged_next: HashMap<OrderedFloat<f32>, i32>, // f32 can't be a key since NaN might not be equal to NaN due to there being millions of ways to represent it in the IEEE 754 standard, but the java side treats all NaNs as equal so this is a workaround
+			opt(1, 1) forks: HashMap<InteractionType, i32>,
 			opt(1, 2) blocked_effects: DamageEffects
 		}
 	}
@@ -428,19 +428,19 @@ define_packet! {
 			required cancel_on_item_change: bool,
 			required next: i32,
 			required failed: i32,
-			opt(0, 32) required_game_mode: GameMode,
-			opt(0, 64) jumping: bool, // @Nullable Boolean be like
-			opt(0, 128) swimming: bool,
-			opt(1, 1) crouching: bool,
-			opt(1, 2) running: bool,
-			opt(1, 4) flying: bool,
+			opt(0, 1) required_game_mode: GameMode,
+			opt(0, 2) jumping: bool, // @Nullable Boolean be like
+			opt(0, 4) swimming: bool,
+			opt(0, 8) crouching: bool,
+			opt(0, 16) running: bool,
+			opt(0, 32) flying: bool,
 		}
 		variable {
-			opt(0, 1) effects: InteractionEffects,
-			opt(0, 2) settings: HashMap<GameMode, InteractionSettings>,
-			opt(0, 4) rules: InteractionRules,
-			opt(0, 8) tags: Vec<i32>,
-			opt(0, 16) camera: InteractionCameraSettings,
+			opt(0, 64) effects: InteractionEffects,
+			opt(0, 128) settings: HashMap<GameMode, InteractionSettings>,
+			opt(1, 1) rules: InteractionRules,
+			opt(1, 2) tags: Vec<i32>,
+			opt(1, 4) camera: InteractionCameraSettings,
 		}
 	}
 }
@@ -865,7 +865,7 @@ define_packet! {
 			required cancel_on_item_change: bool,
 			required next: i32,
 			required failed: i32,
-			opt(32) velocity_config: VelocityConfig,
+			opt(1) velocity_config: VelocityConfig,
 			required change_velocity_type: ChangeVelocityType,
 			required duration: f32,
 			required wait_for_ground: bool,
@@ -879,12 +879,12 @@ define_packet! {
 			required raycast_mode: RaycastMode,
 		}
 		variable {
-			opt(1) effects: InteractionEffects,
-			opt(2) settings: HashMap<GameMode, InteractionSettings>,
-			opt(4) rules: InteractionRules,
-			opt(8) tags: Vec<i32>,
-			opt(16) camera: InteractionCameraSettings,
-			opt(32) forces: Vec<AppliedForce>,
+			opt(2) effects: InteractionEffects,
+			opt(4) settings: HashMap<GameMode, InteractionSettings>,
+			opt(8) rules: InteractionRules,
+			opt(16) tags: Vec<i32>,
+			opt(32) camera: InteractionCameraSettings,
+			opt(64) forces: Vec<AppliedForce>,
 		}
 	}
 }
@@ -1357,7 +1357,7 @@ id_dispatch! {
 		16 => ChangeBlockInteraction,
 		17 => ChangeStateInteraction,
 		18 => FirstClickInteraction,
-		19 => RefillContainerInteraction,
+		// 19 => RefillContainerInteraction, // This was removed for some reason. There's no case 19 anymore, but rather a default case which throws an exception.
 		20 => SelectInteraction,
 		21 => DamageEntityInteraction,
 		22 => RepeatInteraction,

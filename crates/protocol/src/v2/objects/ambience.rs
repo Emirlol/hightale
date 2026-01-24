@@ -23,21 +23,21 @@ define_packet! {
 			required never: bool,
 			required environment_tag_pattern_index: i32,
 			required weather_tag_pattern_index: i32,
-			opt(0, 16) altitude: RangeI,
-			opt(0, 32) walls: RangeB,
+			opt(0, 1) altitude: RangeI,
+			opt(0, 2) walls: RangeB,
 			required roof: bool,
 			required roof_material_tag_pattern_index: i32,
 			required floor: bool,
-			opt(0, 64) sun_light_level: RangeB,
-			opt(0, 128) torch_light_level: RangeB,
-			opt(1, 1) global_light_level: RangeB,
-			opt(1, 2) day_time: RangeF,
+			opt(0, 4) sun_light_level: RangeB,
+			opt(0, 8) torch_light_level: RangeB,
+			opt(0, 16) global_light_level: RangeB,
+			opt(0, 32) day_time: RangeF,
 		}
 		variable {
-			opt(0, 1) environment_indices: Vec<i32>,
-			opt(0, 2) weather_indices: Vec<i32>,
-			opt(0, 4) fluid_fx_indices: Vec<i32>,
-			opt(0, 8) surrounding_block_sound_sets: Vec<AmbienceFXBlockSoundSet>
+			opt(0, 64) environment_indices: Vec<i32>,
+			opt(0, 128) weather_indices: Vec<i32>,
+			opt(1, 1) fluid_fx_indices: Vec<i32>,
+			opt(1, 2) surrounding_block_sound_sets: Vec<AmbienceFXBlockSoundSet>
 		}
 	}
 }
@@ -114,16 +114,16 @@ define_packet! {
 define_packet! {
 	AmbienceFX {
 		fixed {
-			opt(32) sound_effect: AmbienceFXSoundEffect,
+			opt(1) sound_effect: AmbienceFXSoundEffect,
 			required priority: i32,
 			required audio_category_index: i32,
 		}
 		variable {
-			opt(1) id: String,
-			opt(2) conditions: AmbienceFXConditions,
-			opt(4) sounds: Vec<AmbienceFXSound>,
-			opt(8) music: AmbienceFXMusic,
-			opt(16) ambient_bed: AmbienceFXAmbientBed,
+			opt(2) id: String,
+			opt(4) conditions: AmbienceFXConditions,
+			opt(8) sounds: Vec<AmbienceFXSound>,
+			opt(16) music: AmbienceFXMusic,
+			opt(32) ambient_bed: AmbienceFXAmbientBed,
 			opt(64) blocked_ambience_fx_indices: Vec<i32>,
 		}
 	}

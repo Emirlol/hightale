@@ -12,8 +12,8 @@ use bytes::{
 };
 use protocol::{
 	codec::FixedAscii,
-	v1,
-	v1::{
+	v2,
+	v2::{
 		auth::{
 			AuthGrant,
 			ConnectAccept,
@@ -193,7 +193,7 @@ impl PlayerConnection {
 		let mut buf = BytesMut::zeroed(len); // This can't be just `with_capacity` because its length would be 0, which is what's used in read_exact. That means 0 bytes will be read.
 		self.recv.read_exact(&mut buf).await?;
 
-		let is_compressed = v1::is_id_compressed(id);
+		let is_compressed = v2::is_id_compressed(id);
 
 		let mut final_data = if is_compressed && !buf.is_empty() {
 			let mut writer = BytesMut::with_capacity(buf.len() + 1024).writer();

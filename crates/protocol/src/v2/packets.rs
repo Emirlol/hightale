@@ -3371,7 +3371,7 @@ packet_enum! {
 	291 => CancelInteractionChain(interaction::CancelInteractionChain),
 	292 => PlayInteractionFor(interaction::PlayInteractionFor),
 	293 => MountNPC(interaction::MountNPC),
-	294 => DisountNPC(interaction::DismountNPC),
+	294 => DismountNPC(interaction::DismountNPC),
 
 	// Asset Editor
 	300 => FailureReply(asseteditor::FailureReply),

@@ -475,7 +475,7 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 						MaskedFieldKind::Optional(OptionalType::MultiByteMask(bytes, bits)) => {
 							quote!(
 								if self.#name.is_some() {
-									mask[ #bytes as usize ] |= #bits;
+									mask[ #bytes ] |= #bits;
 								}
 							)
 						}

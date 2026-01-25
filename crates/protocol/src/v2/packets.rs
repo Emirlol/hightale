@@ -1378,6 +1378,7 @@ define_enum! {
 
 define_packet! {
 	BlockPlacementSettings {
+		allow_rotation_key: bool,
 		placement_in_empty_blocks: bool,
 		preview_visibility: BlockPreviewVisibility,
 		rotation_mode: BlockPlacementRotationMode,

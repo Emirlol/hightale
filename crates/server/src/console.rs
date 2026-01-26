@@ -56,8 +56,23 @@ impl Completer for ServerHelper {
 impl Hinter for ServerHelper {
 	type Hint = String;
 
-	fn hint(&self, _line: &str, _pos: usize, _ctx: &Context<'_>) -> Option<Self::Hint> {
-		None // Maybe later.
+	fn hint(&self, line: &str, pos: usize, _ctx: &Context<'_>) -> Option<Self::Hint> {
+		if pos != line.len() {
+			return None;
+		}
+		let registry = self.registry.read().unwrap();
+		let prefix = &line[..pos];
+		let suggestions = registry.get_suggestions(prefix);
+		if suggestions.len() != 1 {
+			return None;
+		}
+		let suggestion = &suggestions[0];
+		let last_word = prefix.rsplit(' ').next().unwrap_or("");
+		if let Some(remaining) = suggestion.strip_prefix(last_word) {
+			if remaining.is_empty() { None } else { Some(remaining.to_string()) }
+		} else {
+			None
+		}
 	}
 }
 impl Highlighter for ServerHelper {}

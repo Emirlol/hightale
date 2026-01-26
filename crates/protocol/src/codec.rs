@@ -556,10 +556,7 @@ impl<const N: usize> Display for FixedAscii<N> {
 
 impl<const N: usize> Debug for FixedAscii<N> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-		// Find the first null byte to determine "real" length
-		let len = self.0.iter().position(|&b| b == 0).unwrap_or(N);
-		let s = String::from_utf8_lossy(&self.0[..len]);
-		write!(f, "{}", s)
+		<Self as Display>::fmt(self, f)
 	}
 }
 

@@ -70,6 +70,7 @@ pub async fn main() -> anyhow::Result<()> {
 
 	register_commands!(cmd_reg_wrap,
 		commands::auth::register => (auth_manager.clone(), rt.clone()),
+		commands::help::register => (),
 		commands::stop::register => (shutdown_tx),
 	);
 

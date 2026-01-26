@@ -277,7 +277,7 @@ define_packet! {
 			required failed: i32,
 			opt(0, 1) required_game_mode: GameMode,
 			required adjust_held_item_quantity: i32,
-			required adjust_held_item_durability: i32,
+			required adjust_held_item_durability: f64,
 		}
 		variable {
 			opt(0, 2) effects: InteractionEffects,

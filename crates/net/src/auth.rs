@@ -102,6 +102,16 @@ impl ServerAuthManager {
 				None => parse_jwt_expiry(&sess).context("Failed to parse session token expiry")?,
 			};
 
+			if let Some(expiry) = expires_at
+				&& expiry <= Utc::now()
+			{
+				warn!("Auth token expired. Clearing stored credentials.");
+				if let Some(store) = &self.auth_store {
+					let _ = store.clear();
+				}
+				return Ok(());
+			}
+
 			let new_session = ServerSession {
 				session_token: sess,
 				identity_token: id,

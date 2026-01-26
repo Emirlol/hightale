@@ -21,6 +21,10 @@ use crate::common_asset::{
 };
 
 pub(crate) fn load_pack(pack_root: &Path) -> StoreResult<Vec<CommonAsset>> {
+	if !pack_root.exists() {
+		return Err(StoreError::NotFound(pack_root.display().to_string()));
+	}
+
 	if pack_root.is_dir() {
 		return load_dir_pack(pack_root);
 	}
@@ -29,7 +33,7 @@ pub(crate) fn load_pack(pack_root: &Path) -> StoreResult<Vec<CommonAsset>> {
 		return load_zip_pack(pack_root);
 	}
 
-	Err(StoreError::Decode(format!("Unsupported common asset pack format: {}", pack_root.display())))
+	Err(StoreError::NotFound(pack_root.display().to_string()))
 }
 
 pub(crate) fn load_dir(root: &Path) -> StoreResult<Vec<CommonAsset>> {

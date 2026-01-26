@@ -17,8 +17,8 @@ pub enum StoreError {
 	#[error("Duplicate key")]
 	DuplicateKey,
 
-	#[error("Not found")]
-	NotFound,
+	#[error("File not found: {0}")]
+	NotFound(String),
 }
 
 pub type StoreResult<T> = Result<T, StoreError>;

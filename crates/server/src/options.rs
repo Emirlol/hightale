@@ -14,7 +14,7 @@ use clap::Parser;
 use serde::Deserialize;
 
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:5532";
-const DEFAULT_ASSETS_DIR: &str = "assets";
+const DEFAULT_ASSETS_DIR: &str = "Assets.zip";
 const DEFAULT_AUTH_STORE: &str = "auth.enc";
 const DEFAULT_IDLE_TIMEOUT_SECS: u64 = 30;
 const DEFAULT_KEEP_ALIVE_SECS: u64 = 5;

@@ -48,6 +48,7 @@ use tokio::io::AsyncReadExt;
 use tracing::{
 	error,
 	info,
+	trace,
 	warn,
 };
 use uuid::Uuid;
@@ -277,17 +278,18 @@ impl PlayerConnection {
 		packet.encode(&mut payload)?;
 
 		let payload = if packet.is_compressed() && !payload.is_empty() {
-			// Pre-allocate at least the packet's size so there are fewer allocations
-			let mut writer = BytesMut::with_capacity(payload.len()).writer();
-			zstd::stream::copy_encode(payload.reader(), &mut writer, 3)?;
-			writer.into_inner().freeze()
+			let compressed = zstd::bulk::compress(&payload, 3)?;
+			Bytes::from(compressed)
 		} else {
 			payload.freeze()
 		};
 
 		let mut header = BytesMut::new();
-		header.put_i32_le(payload.len() as i32);
-		header.put_i32_le(packet.id());
+		let len = payload.len() as i32;
+		let id = packet.id();
+		trace!("Sending packet (id={}, {} bytes)", id, len);
+		header.put_i32_le(len);
+		header.put_i32_le(id);
 
 		self.send.write_all(&header).await?;
 		self.send.write_all(&payload).await?;
@@ -308,6 +310,7 @@ impl PlayerConnection {
 	async fn read_packet(&mut self) -> Result<Packet> {
 		let len = self.recv.read_i32_le().await? as usize;
 		let id = self.recv.read_i32_le().await?;
+		trace!("Receiving packet id={} ({} bytes)", id, len);
 
 		if len > 1677721600 {
 			bail!("Invalid Packet Length: {}", len);
@@ -327,6 +330,7 @@ impl PlayerConnection {
 		};
 
 		let packet = Packet::decode(id, &mut final_data)?;
+		trace!("Received packet {}", packet.id());
 
 		Ok(packet)
 	}

@@ -1,4 +1,5 @@
 use std::{
+	path::PathBuf,
 	sync::Arc,
 	time::Duration,
 };
@@ -40,8 +41,17 @@ use tracing::{
 };
 use uuid::Uuid;
 
-use crate::api::{OAuthTokenResponse, SessionService};
-use crate::oauth;
+use crate::{
+	api::{
+		OAuthTokenResponse,
+		SessionService,
+	},
+	auth_store::{
+		AuthFileStore,
+		StoredAuthTokens,
+	},
+	oauth,
+};
 
 #[derive(Debug, Clone)]
 pub struct ServerSession {
@@ -63,16 +73,19 @@ pub struct ServerAuthManager {
 	cert_fingerprint: String,
 	http_client: Client,
 	instance_audience_id: String,
+	auth_store: Option<AuthFileStore>,
 }
 
 impl ServerAuthManager {
-	pub fn new(cert_fingerprint: String) -> Result<Arc<Self>> {
+	pub fn new(cert_fingerprint: String, auth_store_path: Option<PathBuf>) -> Result<Arc<Self>> {
+		let auth_store = auth_store_path.map(AuthFileStore::new);
 		Ok(Arc::new(Self {
 			api: SessionService::new()?,
 			session: Arc::new(RwLock::new(None)),
 			cert_fingerprint,
 			http_client: Client::builder().user_agent("HytaleServer/1.0.0").timeout(std::time::Duration::from_secs(10)).build()?,
 			instance_audience_id: Uuid::new_v4().to_string(),
+			auth_store,
 		}))
 	}
 
@@ -82,15 +95,34 @@ impl ServerAuthManager {
 
 		let mut session_token = session_token;
 		let mut identity_token = identity_token;
+		let mut refresh_token = None;
+		let mut expires_at = None;
+		let mut server_id = None;
+
+		if session_token.is_none()
+			&& identity_token.is_none()
+			&& let Some(store) = &self.auth_store
+			&& let Ok(Some(tokens)) = store.load()
+		{
+			info!("Loaded auth tokens from encrypted store.");
+			session_token = Some(tokens.session_token);
+			identity_token = Some(tokens.identity_token);
+			refresh_token = tokens.refresh_token;
+			expires_at = tokens.expires_at;
+			server_id = tokens.server_id;
+		}
 
 		if let (Some(sess), Some(id)) = (session_token, identity_token) {
-			let expires_at = parse_jwt_expiry(&sess).context("Failed to parse session token expiry")?;
+			let expires_at = match expires_at {
+				Some(v) => Some(v),
+				None => parse_jwt_expiry(&sess).context("Failed to parse session token expiry")?,
+			};
 
 			let new_session = ServerSession {
 				session_token: sess,
 				identity_token: id,
-				refresh_token: None,
-				server_id: Uuid::new_v4(),
+				refresh_token,
+				server_id: server_id.unwrap_or_else(Uuid::new_v4),
 				expires_at,
 			};
 
@@ -99,6 +131,7 @@ impl ServerAuthManager {
 				*lock = Some(new_session);
 			}
 
+			self.persist_session().await;
 			self.clone().spawn_refresh_loop();
 
 			info!("Auth initialized successfully.");
@@ -213,12 +246,12 @@ impl ServerAuthManager {
 		};
 
 		*self.session.write() = Some(session);
+		self.persist_session().await;
 		// Start the refresh loop since we are now logged in
 		self.clone().spawn_refresh_loop();
 
 		Ok(())
 	}
-
 
 	/// Performs the HTTP Refresh call
 	async fn perform_refresh(&self) -> Result<()> {
@@ -246,6 +279,7 @@ impl ServerAuthManager {
 			}
 		}
 
+		self.persist_session().await;
 		info!("Session token refreshed successfully.");
 		Ok(())
 	}
@@ -273,6 +307,34 @@ impl ServerAuthManager {
 
 	pub fn get_api(&self) -> &SessionService {
 		&self.api
+	}
+
+	async fn persist_session(&self) {
+		let Some(store) = &self.auth_store else {
+			return;
+		};
+		let session = { self.session.read().clone() };
+		let Some(session) = session else {
+			return;
+		};
+		let tokens = StoredAuthTokens {
+			session_token: session.session_token,
+			identity_token: session.identity_token,
+			refresh_token: session.refresh_token,
+			expires_at: session.expires_at,
+			server_id: Some(session.server_id),
+		};
+		if let Err(e) = store.save(&tokens) {
+			warn!("Failed to persist auth tokens: {}", e);
+		}
+	}
+
+	pub async fn clear_credentials(&self) -> Result<()> {
+		*self.session.write() = None;
+		if let Some(store) = &self.auth_store {
+			store.clear()?;
+		}
+		Ok(())
 	}
 }
 

@@ -20,6 +20,9 @@ thiserror.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true
+aes-gcm.workspace = true
+pbkdf2.workspace = true
+machine-uid.workspace = true
 
 parking_lot.workspace = true
 sha2.workspace = true

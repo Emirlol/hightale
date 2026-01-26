@@ -64,7 +64,7 @@ pub async fn main() -> anyhow::Result<()> {
 	let fingerprint = cert_data.fingerprint.clone();
 	info!("Generated self-signed cert. Fingerprint: {}", fingerprint);
 
-	let auth_manager = ServerAuthManager::new(fingerprint)?;
+	let auth_manager = ServerAuthManager::new(fingerprint, Some(options.auth_store_path.clone()))?;
 	auth_manager.initialize(options.auth_session_token.clone(), options.auth_identity_token.clone()).await?;
 	let rt = tokio::runtime::Handle::current();
 

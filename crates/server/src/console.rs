@@ -42,11 +42,13 @@ impl Completer for ServerHelper {
 
 	fn complete(&self, line: &str, pos: usize, _ctx: &Context<'_>) -> RlResult<(usize, Vec<Pair>)> {
 		let registry = self.registry.read().unwrap();
-		let suggestions = registry.get_suggestions(line);
+		// TODO: Improve parsing to respect cursor position (quotes/escapes) for better tab completion.
+		let prefix = &line[..pos];
+		let suggestions = registry.get_suggestions(prefix);
 
 		let pairs = suggestions.into_iter().map(|s| Pair { display: s.clone(), replacement: s }).collect();
 
-		let start_pos = line[..pos].rfind(' ').map(|i| i + 1).unwrap_or(0);
+		let start_pos = prefix.rfind(' ').map(|i| i + 1).unwrap_or(0);
 
 		Ok((start_pos, pairs))
 	}

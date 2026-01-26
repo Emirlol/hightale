@@ -3,9 +3,12 @@ pub mod commands;
 pub mod console;
 pub mod options;
 
-use std::sync::{
-	Arc,
-	RwLock,
+use std::{
+	str::FromStr,
+	sync::{
+		Arc,
+		RwLock,
+	},
 };
 
 use command::CommandRegistry;
@@ -19,11 +22,14 @@ use tokio::sync::mpsc;
 use tracing::{
 	error,
 	info,
+	Level,
 };
 use tracing_subscriber::{
+	filter::Directive,
 	layer::SubscriberExt,
 	util::SubscriberInitExt,
 	EnvFilter,
+	Layer,
 };
 
 macro_rules! register_commands {
@@ -41,23 +47,27 @@ pub async fn main() -> anyhow::Result<()> {
 	let (shutdown_tx, mut shutdown_rx) = mpsc::unbounded_channel();
 	let command_registry = CommandRegistry::new();
 	let cmd_reg_wrap = Arc::new(RwLock::new(command_registry));
-	if std::env::var("RUST_LOG").is_err() {
-		// Make sure we have the default log level
-		unsafe {
-			std::env::set_var("RUST_LOG", "info");
-		}
-	}
+	eprintln!("RUST_LOG={:?}", std::env::var("RUST_LOG"));
 	if std::io::stdout().is_terminal() {
 		let (writer, console_task) = console::setup_interactive(cmd_reg_wrap.clone(), shutdown_tx.clone())?;
-		tracing_subscriber::registry()
-			.with(tracing_subscriber::fmt::layer().with_writer(move || writer.clone()))
-			.with(EnvFilter::from_default_env())
-			.init();
+		let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|err| {
+			eprintln!("Invalid RUST_LOG: {}", err);
+			EnvFilter::new("info")
+		});
+		let console_filter = EnvFilter::new("server::console=info");
+		let console_layer = tracing_subscriber::fmt::layer().with_writer(move || writer.clone()).with_filter(console_filter);
+		let stderr_filter = env_filter.add_directive(Directive::from_str("server::console=off")?);
+		let stderr_layer = tracing_subscriber::fmt::layer().with_writer(std::io::stderr).with_filter(stderr_filter);
+		tracing_subscriber::registry().with(console_layer).with(stderr_layer).init();
 
 		std::thread::spawn(console_task);
 	} else {
 		// Headless mode
-		tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(EnvFilter::from_default_env()).init();
+		let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|err| {
+			eprintln!("Invalid RUST_LOG: {}", err);
+			EnvFilter::new("info")
+		});
+		tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).with(env_filter).init();
 	};
 
 	rustls::crypto::ring::default_provider().install_default().unwrap();

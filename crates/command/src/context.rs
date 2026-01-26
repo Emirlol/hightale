@@ -4,12 +4,16 @@ use std::{
 		TypeId,
 	},
 	collections::HashMap,
+	sync::Arc,
 };
-use std::sync::Arc;
+
 use anyhow::Result;
 use thiserror::Error;
 
-use crate::args::BoxedArg;
+use crate::{
+	args::BoxedArg,
+	CommandRegistry,
+};
 
 pub trait CommandSender: Send + Sync {
 	fn send_message(&self, msg: &str);
@@ -23,6 +27,7 @@ pub trait CommandSender: Send + Sync {
 pub struct CommandContext<'a> {
 	pub sender: Arc<dyn CommandSender>, // The sender may outlive the context
 	pub args: &'a HashMap<String, BoxedArg>,
+	pub registry: &'a CommandRegistry,
 }
 
 #[derive(Debug, Error)]

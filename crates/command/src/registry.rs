@@ -1,5 +1,8 @@
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{
+	collections::HashMap,
+	sync::Arc,
+};
+
 use anyhow::Result;
 use thiserror::Error;
 
@@ -95,7 +98,11 @@ impl CommandRegistry {
 		}
 
 		if let Some(executor) = &current_node.executor {
-			let ctx = CommandContext { sender, args: &parsed_args };
+			let ctx = CommandContext {
+				sender,
+				args: &parsed_args,
+				registry: self,
+			};
 			executor(&ctx).map_err(|e| CommandError::ExecutorError { source: e })?;
 			Ok(())
 		} else {
@@ -159,5 +166,11 @@ impl CommandRegistry {
 		}
 
 		suggestions
+	}
+
+	pub fn root_commands(&self) -> Vec<String> {
+		let mut cmds: Vec<String> = self.root.children.keys().cloned().collect();
+		cmds.sort();
+		cmds
 	}
 }

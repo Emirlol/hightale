@@ -24,9 +24,9 @@ pub struct ArgumentNode {
 }
 
 impl Default for CommandNode {
-    fn default() -> Self {
-        Self::new()
-    }
+	fn default() -> Self {
+		Self::new()
+	}
 }
 
 impl CommandNode {

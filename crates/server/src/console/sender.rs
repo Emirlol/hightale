@@ -1,6 +1,10 @@
-use command::CommandSender;
 use std::any::Any;
-use tracing::{error, info};
+
+use command::CommandSender;
+use tracing::{
+	error,
+	info,
+};
 
 pub struct ConsoleSender;
 

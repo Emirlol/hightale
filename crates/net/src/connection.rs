@@ -160,9 +160,6 @@ impl PlayerConnection {
 
 		let fingerprint = self.auth.get_cert_fingerprint();
 
-		info!("--- Auth Debug Start ---");
-		info!("Server Grant from Client: '{}'", server_grant);
-		info!("Cert Fingerprint (Debug): {:?}", fingerprint);
 		let access_token = self.auth.get_api().exchange_grant(&server_grant, fingerprint, &server_session).await?;
 
 		self.send_packet(ServerAuthToken {

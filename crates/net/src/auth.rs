@@ -19,21 +19,7 @@ use chrono::{
 	Utc,
 };
 use parking_lot::RwLock;
-use rand::RngCore;
-use reqwest::Client;
-use serde::{
-	Deserialize,
-	Serialize,
-};
-use sha2::{
-	Digest,
-	Sha256,
-};
-use tiny_http::{
-	ListenAddr,
-	Response,
-	Server,
-};
+use serde::Deserialize;
 use tracing::{
 	error,
 	info,
@@ -71,7 +57,6 @@ pub struct ServerAuthManager {
 	api: SessionService,
 	session: Arc<RwLock<Option<ServerSession>>>,
 	cert_fingerprint: String,
-	http_client: Client,
 	instance_audience_id: String,
 	auth_store: Option<AuthFileStore>,
 }
@@ -83,7 +68,6 @@ impl ServerAuthManager {
 			api: SessionService::new()?,
 			session: Arc::new(RwLock::new(None)),
 			cert_fingerprint,
-			http_client: Client::builder().user_agent("HytaleServer/1.0.0").timeout(std::time::Duration::from_secs(10)).build()?,
 			instance_audience_id: Uuid::new_v4().to_string(),
 			auth_store,
 		}))
@@ -242,7 +226,7 @@ impl ServerAuthManager {
 			identity_token: game_session.identity_token,
 			refresh_token: tokens.refresh_token,
 			server_id,
-			expires_at: Some(chrono::Utc::now() + chrono::Duration::seconds(tokens.expires_in)),
+			expires_at: Some(Utc::now() + chrono::Duration::seconds(tokens.expires_in)),
 		};
 
 		*self.session.write() = Some(session);

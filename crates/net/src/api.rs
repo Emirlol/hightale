@@ -88,10 +88,7 @@ impl SessionService {
 	pub async fn get_game_profiles(&self, oauth_access_token: &str) -> Result<Vec<GameProfile>> {
 		let url = format!("{}/my-account/get-profiles", self.account_url);
 
-		let resp = self.client.get(&url)
-			.bearer_auth(oauth_access_token)
-			.send()
-			.await?;
+		let resp = self.client.get(&url).bearer_auth(oauth_access_token).send().await?;
 
 		let data: LauncherDataResponse = resp.error_for_status()?.json().await?;
 		Ok(data.profiles)
@@ -102,16 +99,12 @@ impl SessionService {
 
 		let body = CreateSessionRequest { uuid: profile_uuid };
 
-		let resp = self.client.post(&url)
-			.bearer_auth(oauth_access_token)
-			.json(&body)
-			.send()
-			.await?;
+		let resp = self.client.post(&url).bearer_auth(oauth_access_token).json(&body).send().await?;
 
 		let data: GameSessionResponse = resp.error_for_status()?.json().await?;
 		Ok(data)
 	}
-	
+
 	pub async fn request_auth_grant(
 		&self,
 		player_identity_token: &str,
@@ -148,10 +141,7 @@ impl SessionService {
 	pub async fn refresh_session(&self, current_token: &str) -> Result<GameSessionResponse> {
 		let url = format!("{}/game-session/refresh", self.session_url);
 
-		let resp = self.client.post(&url)
-			.bearer_auth(current_token)
-			.send()
-			.await?;
+		let resp = self.client.post(&url).bearer_auth(current_token).send().await?;
 
 		let data: GameSessionResponse = resp.error_for_status()?.json().await?;
 		Ok(data)

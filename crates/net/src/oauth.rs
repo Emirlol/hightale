@@ -16,6 +16,7 @@ use sha2::{
 };
 use thiserror::Error;
 use tiny_http::{
+	Header,
 	ListenAddr,
 	Response,
 	Server,
@@ -103,10 +104,7 @@ pub fn start_listener() -> Result<(String, PendingOAuthState, oneshot::Receiver<
 					&& let Some(ret_state) = ret_state
 					&& ret_state == expected_raw_state
 				{
-					let _ = request.respond(
-						Response::from_string("<html><body><h1 style='color:green'>Authentication Successful!</h1><p>You can return to the console.</p><script>window.close()</script></body></html>")
-							.with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]).unwrap()),
-					);
+					let _ = request.respond(Response::from_string(RESPONSE_HTML).with_header(Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]).expect("Valid headers")));
 
 					let _ = tx.send(code);
 					return;
@@ -167,3 +165,44 @@ pub async fn exchange_code(code: &str, pending_oauth_state: &PendingOAuthState) 
 	let token_data: OAuthTokenResponse = response.json().await.map_err(RequestError)?;
 	Ok(token_data)
 }
+
+// language=html // Intellij-based IDEs hint for HTML language injection
+const RESPONSE_HTML: &str = r#"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Authentication Successful - Hightale</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@700&family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet">
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		html { color-scheme: dark; background: linear-gradient(180deg, #15243A, #0F1418); min-height: 100vh; }
+		body { font-family: "Nunito Sans", sans-serif; color: #b7cedd; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+		.card { background: rgba(0,0,0,0.4); border: 2px solid rgba(71,81,107,0.6); border-radius: 12px; padding: 48px 40px; max-width: 420px; text-align: center; }
+		.icon { width: 64px; height: 64px; margin: 0 auto 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+		.icon svg { width: 32px; height: 32px; }
+		.icon-success { background: linear-gradient(135deg, #2d5a3d, #1e3a2a); border: 2px solid #4a9d6b; }
+		.icon-success svg { color: #6fcf97; }
+		.icon-error { background: linear-gradient(135deg, #5a2d3d, #3a1e2a); border: 2px solid #c3194c; }
+		.icon-error svg { color: #ff6b8a; }
+		h1 { font-family: "Lexend", sans-serif; font-size: 1.5rem; text-transform: uppercase; background: linear-gradient(#f5fbff, #bfe6ff); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 12px; }
+		p { line-height: 1.6; }
+		.error { background: rgba(195,25,76,0.15); border: 1px solid rgba(195,25,76,0.4); border-radius: 6px; padding: 12px; margin-top: 16px; color: #ff8fa8; font-size: 0.875rem; word-break: break-word; }
+	</style>
+</head>
+<body>
+	<div class="card">
+		<div class="icon icon-success">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+				<polyline points="20 6 9 17 4 12"/>
+			</svg>
+		</div>
+		<h1>Authentication Successful</h1>
+		<p>You have been logged in successfully. You can now close this window and return to the server.</p>
+	</div>
+</body>
+</html>
+"#;

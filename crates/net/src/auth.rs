@@ -76,16 +76,14 @@ impl ServerAuthManager {
 		}))
 	}
 
-	/// Entry point: Tries to load tokens from Env and starts the background loop.
-	pub async fn initialize(self: &Arc<Self>) -> Result<()> {
+	/// Entry point: Tries to load tokens from inputs and starts the background loop.
+	pub async fn initialize(self: &Arc<Self>, session_token: Option<String>, identity_token: Option<String>) -> Result<()> {
 		info!("Initializing ServerAuthManager...");
 
-		let session_token = std::env::var("HYTALE_SERVER_SESSION_TOKEN").ok();
-		let identity_token = std::env::var("HYTALE_SERVER_IDENTITY_TOKEN").ok();
+		let mut session_token = session_token;
+		let mut identity_token = identity_token;
 
 		if let (Some(sess), Some(id)) = (session_token, identity_token) {
-			info!("Tokens found in environment variables.");
-
 			let expires_at = parse_jwt_expiry(&sess).context("Failed to parse session token expiry")?;
 
 			let new_session = ServerSession {
@@ -105,7 +103,7 @@ impl ServerAuthManager {
 
 			info!("Auth initialized successfully.");
 		} else {
-			warn!("No tokens found in environment. Server starts unauthenticated.");
+			warn!("No tokens found. Server starts unauthenticated.");
 		}
 
 		Ok(())
@@ -130,7 +128,7 @@ impl ServerAuthManager {
 		self.session.read().is_some()
 	}
 
-	/// The Background Task (Replaces ScheduledExecutorService)
+	/// Spawns a background task to refresh the session token when its time is due
 	fn spawn_refresh_loop(self: Arc<Self>) {
 		tokio::spawn(async move {
 			loop {
@@ -147,7 +145,6 @@ impl ServerAuthManager {
 		});
 	}
 
-	/// Logic to determine wait time (Java: refreshDelay logic)
 	async fn calculate_next_refresh(&self) -> Duration {
 		let lock = self.session.read();
 		match &*lock {
@@ -189,7 +186,7 @@ impl ServerAuthManager {
 						Err(e) => error!("OAuth exchange failed: {}", e),
 					}
 				}
-				Err(_) => error!("Login listener cancelled or failed.")
+				Err(_) => error!("Login listener cancelled or failed."),
 			}
 		});
 

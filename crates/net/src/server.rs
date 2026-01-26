@@ -45,8 +45,23 @@ pub struct QuicServer {
 	auth_manager: Arc<ServerAuthManager>,
 }
 
+#[derive(Clone, Debug)]
+pub struct QuicServerOptions {
+	pub max_idle_timeout: Duration,
+	pub keep_alive_interval: Duration,
+}
+
+impl Default for QuicServerOptions {
+	fn default() -> Self {
+		Self {
+			max_idle_timeout: Duration::from_secs(30),
+			keep_alive_interval: Duration::from_secs(5),
+		}
+	}
+}
+
 impl QuicServer {
-	pub async fn bind(addr: SocketAddr, cert: ServerCert, auth_manager: Arc<ServerAuthManager>) -> Result<Self> {
+	pub async fn bind(addr: SocketAddr, cert: ServerCert, auth_manager: Arc<ServerAuthManager>, options: QuicServerOptions) -> Result<Self> {
 		info!("Setting up QUIC transport...");
 
 		let ServerCert { chain, key, fingerprint: _ } = cert;
@@ -63,8 +78,8 @@ impl QuicServer {
 
 		let mut transport_config = TransportConfig::default();
 		// Disconnect clients if they are silent for 30 seconds
-		transport_config.max_idle_timeout(Some(Duration::from_secs(30).try_into()?));
-		transport_config.keep_alive_interval(Some(Duration::from_secs(5)));
+		transport_config.max_idle_timeout(Some(options.max_idle_timeout.try_into()?));
+		transport_config.keep_alive_interval(Some(options.keep_alive_interval));
 
 		server_config.transport_config(Arc::new(transport_config));
 

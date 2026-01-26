@@ -15,12 +15,13 @@ tracing-subscriber = { version = "0.3",features = ["env-filter"] }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+toml = "0.9"
+envy = "0.4"
 rkyv = "0.8"
 zstd = "0.13"
 
-hecs = "0.11.0"
-
 tokio = { version = "1", features = ["full"] }
+clap = { version = "4.5", features = ["derive"] }
 
 reqwest = { version = "0.13", features = ["json", "rustls", "form"] }
 quinn = { version = "0.11", features = ["rustls-ring"] }

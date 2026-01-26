@@ -1,12 +1,10 @@
 pub mod commands;
 pub mod console;
+pub mod options;
 
-use std::{
-	net::SocketAddr,
-	sync::{
-		Arc,
-		RwLock,
-	},
+use std::sync::{
+	Arc,
+	RwLock,
 };
 
 use command::CommandRegistry;
@@ -37,6 +35,8 @@ macro_rules! register_commands {
 }
 
 pub async fn main() -> anyhow::Result<()> {
+	let options = options::ServerOptions::load()?;
+
 	let (shutdown_tx, mut shutdown_rx) = mpsc::unbounded_channel();
 	let command_registry = CommandRegistry::new();
 	let cmd_reg_wrap = Arc::new(RwLock::new(command_registry));
@@ -65,7 +65,7 @@ pub async fn main() -> anyhow::Result<()> {
 	info!("Generated self-signed cert. Fingerprint: {}", fingerprint);
 
 	let auth_manager = ServerAuthManager::new(fingerprint)?;
-	auth_manager.initialize().await?;
+	auth_manager.initialize(options.auth_session_token.clone(), options.auth_identity_token.clone()).await?;
 	let rt = tokio::runtime::Handle::current();
 
 	register_commands!(cmd_reg_wrap,
@@ -74,8 +74,11 @@ pub async fn main() -> anyhow::Result<()> {
 		commands::stop::register => (shutdown_tx),
 	);
 
-	let bind_addr: SocketAddr = "0.0.0.0:5532".parse()?;
-	let server = QuicServer::bind(bind_addr, cert_data, auth_manager).await?;
+	let quic_options = net::server::QuicServerOptions {
+		max_idle_timeout: std::time::Duration::from_secs(options.quic_idle_timeout_secs),
+		keep_alive_interval: std::time::Duration::from_secs(options.quic_keep_alive_secs),
+	};
+	let server = QuicServer::bind(options.bind_addr, cert_data, auth_manager, quic_options).await?;
 
 	info!("Server is Ready.");
 

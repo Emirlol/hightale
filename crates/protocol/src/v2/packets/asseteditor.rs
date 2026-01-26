@@ -5,6 +5,7 @@ use macros::define_packet;
 use ordered_float::OrderedFloat;
 
 use crate::{
+	codec::BoundedVarLen,
 	define_enum,
 	v2::{
 		BlockType,
@@ -676,9 +677,7 @@ define_enum! {
 define_packet! {
 	SchemaFile {
 		variable {
-			// For some reason, v2 has the max length of this at 16777215, but I don't know how we can easily change the max length for strings.
-			// TODO: Consider how we can add different max lengths for variable length items.
-			opt(1) content: String
+			opt(1) content: BoundedVarLen<String, 16777215>
 		}
 	}
 }

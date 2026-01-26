@@ -23,37 +23,30 @@ macro_rules! define_enum {
 
         impl $name {
             #[allow(clippy::wrong_self_convention)]
-            pub fn from_u8(v: u8) -> Option<Self> {
+            fn from_u8(v: u8) -> Option<Self> {
                 match v {
                     $($val => Some(Self::$variant),)*
                     _ => None,
                 }
             }
             #[allow(clippy::wrong_self_convention)]
-            pub fn to_u8(&self) -> u8 {
+            fn to_u8(&self) -> u8 {
                 *self as u8
             }
         }
 
         impl $crate::codec::HytaleCodec for $name {
-            fn encode(&self, buf: &mut bytes::BytesMut) {
-                #[allow(unused_imports)]
-                use bytes::BufMut;
-
-                buf.put_u8(self.to_u8());
+            fn encode(&self, buf: &mut bytes::BytesMut) -> $crate::codec::PacketResult<()> {
+                <u8 as $crate::codec::HytaleCodec>::encode(&self.to_u8(), buf)?;
+                Ok(())
             }
 
             fn decode(buf: &mut impl bytes::Buf) -> $crate::codec::PacketResult<Self> {
-                #[allow(unused_imports)]
                 use $crate::codec::PacketError;
-                #[allow(unused_imports)]
-                use $crate::codec::PacketContext;
 
-                if !buf.has_remaining() {
-                    return Err(PacketError::Incomplete).context(stringify!($name));
-                }
-                let val = buf.get_u8();
-                Self::from_u8(val).ok_or_else(|| PacketError::InvalidEnumVariant(val)).context(stringify!($name))
+                // No context here, just propagate upwards since the packets using this enum will already have the field name as context
+                let val = <u8 as $crate::codec::HytaleCodec>::decode(buf)?;
+                Self::from_u8(val).ok_or_else(|| PacketError::InvalidEnumVariant(val))
             }
         }
 
@@ -85,7 +78,7 @@ macro_rules! id_dispatch {
         impl crate::codec::HytaleCodec for $packet {
             fn decode(buf: &mut impl bytes::Buf) -> crate::codec::PacketResult<Self> {
                 use crate::codec::PacketContext;
-                let type_id = crate::codec::VarInt::decode(buf)?.0;
+                let type_id = crate::codec::VarInt::decode(buf).context("id")?.0;
 
                 match type_id {
                     $(
@@ -97,15 +90,17 @@ macro_rules! id_dispatch {
                 }
             }
 
-            fn encode(&self, buf: &mut bytes::BytesMut) {
+            fn encode(&self, buf: &mut bytes::BytesMut) -> crate::codec::PacketResult<()> {
+                use crate::codec::PacketContext;
                 match self {
                     $(
                         $packet::$name(inner) => {
-                            crate::codec::VarInt($id).encode(buf);
-                            inner.encode(buf);
+                            crate::codec::VarInt($id).encode(buf).context("id")?;
+                            inner.encode(buf).context("inner")?;
                         }
                     )*
                 }
+                Ok(())
             }
         }
     };
@@ -128,7 +123,7 @@ macro_rules! id_dispatch {
         impl crate::codec::HytaleCodec for $packet {
             fn decode(buf: &mut impl bytes::Buf) -> crate::codec::PacketResult<Self> {
                 use crate::codec::PacketContext;
-                let type_id = crate::codec::VarInt::decode(buf)?.0;
+                let type_id = crate::codec::VarInt::decode(buf).context("id")?.0;
 
                 match type_id {
                     $(
@@ -140,15 +135,17 @@ macro_rules! id_dispatch {
                 }
             }
 
-            fn encode(&self, buf: &mut bytes::BytesMut) {
+            fn encode(&self, buf: &mut bytes::BytesMut) -> crate::codec::PacketResult<()> {
+                use crate::codec::PacketContext;
                 match self {
                     $(
                         $packet::$name(inner) => {
-                            crate::codec::VarInt($id).encode(buf);
-                            inner.encode(buf);
+                            crate::codec::VarInt($id).encode(buf).context("id")?;
+                            inner.encode(buf).context("inner")?;
                         }
                     )*
                 }
+                Ok(())
             }
         }
     };

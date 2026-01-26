@@ -314,7 +314,9 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 				pub struct #name;
 
 				impl #hytale_codec for #name {
-					fn encode(&self, _buf: &mut bytes::BytesMut) {}
+					fn encode(&self, _buf: &mut bytes::BytesMut) -> #packet_result<()> {
+						Ok(())
+					}
 
 					fn decode(_buf: &mut impl bytes::Buf) -> #packet_result<Self> {
 						Ok(Self)
@@ -336,10 +338,12 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 				}
 
 				impl #hytale_codec for #name {
-					fn encode(&self, buf: &mut bytes::BytesMut) {
+					fn encode(&self, buf: &mut bytes::BytesMut) -> #packet_result<()> {
+						use #packet_context;
 						#(
-							<#types as #hytale_codec>::encode(&self.#names, buf);
+							<#types as #hytale_codec>::encode(&self.#names, buf).context(#name_strs)?;
 						)*
+						Ok(())
 					}
 
 					fn decode(buf: &mut impl bytes::Buf) -> #packet_result<Self> {
@@ -503,10 +507,14 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 			let variable_block_name: Vec<&Ident> = variable_block.iter().map(|f| &f.name).collect();
 
 			let decode_helper = |ty: &Type, name_str: String| quote! { <#ty as #hytale_codec>::decode(buf).context(#name_str)? };
-			let encode_helper = |ty: &Type, name: &Ident| quote! { <#ty as #hytale_codec>::encode(&self.#name, buf); };
+			let encode_helper = |ty: &Type, name: &Ident| {
+				let name_str = name.to_string();
+				quote! { <#ty as #hytale_codec>::encode(&self.#name, buf).context(#name_str)?; }
+			};
 
 			let fixed_encode = fixed_block.iter().map(|field| {
 				let name = &field.name;
+				let name_str = name.to_string();
 				let ty = &field.ty;
 				match field.kind {
 					MaskedFieldKind::Required => encode_helper(ty, name),
@@ -514,7 +522,7 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 						let padding = field.get_padding_quote();
 						quote! {
 							if let Some(value) = &self.#name {
-								<#ty as #hytale_codec>::encode(value, buf);
+								<#ty as #hytale_codec>::encode(value, buf).context(#name_str)?;
 							} else {
 								buf.extend_from_slice(&[0u8; #padding]);
 							}
@@ -633,12 +641,13 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 			let variable_encode = if variable_block.len() == 1 {
 				let field = variable_block.first().unwrap();
 				let name = &field.name;
+				let name_str = name.to_string();
 				let ty = &field.ty;
 				let encode = match field.kind {
 					MaskedFieldKind::Required => encode_helper(ty, name),
 					MaskedFieldKind::Optional(_) => quote! {
 						if let Some(value) = &self.#name {
-							<#ty as #hytale_codec>::encode(value, buf);
+							<#ty as #hytale_codec>::encode(value, buf).context(#name_str)?;
 						} // No padding
 					},
 				};
@@ -647,12 +656,13 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 			} else {
 				let variable_encode = variable_block.iter().map(|field| {
 					let name = &field.name;
+					let name_str = name.to_string();
 					let ty = &field.ty;
 					let encode = match field.kind {
 						MaskedFieldKind::Required => encode_helper(ty, name),
 						MaskedFieldKind::Optional(_) => quote! {
 							if let Some(value) = &self.#name {
-								<#ty as #hytale_codec>::encode(value, buf);
+								<#ty as #hytale_codec>::encode(value, buf).context(#name_str)?;
 							}
 						},
 					};
@@ -723,8 +733,10 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 				#impl_block
 
 				impl #hytale_codec for #name {
-					fn encode(&self, buf: &mut bytes::BytesMut) {
+					fn encode(&self, buf: &mut bytes::BytesMut) -> #packet_result<()> {
 						use bytes::BufMut;
+						use #packet_context;
+
 						#mask_def
 						#(#null_bits_initialize)*
 						#null_bits_write
@@ -735,6 +747,7 @@ pub fn generate(packet_def: PacketDefinition) -> proc_macro2::TokenStream {
 						#encode_offset_initialize
 						// Encode variable block
 						#variable_encode
+						Ok(())
 					}
 
 					fn decode(buf: &mut impl bytes::Buf) -> #packet_result<Self> {

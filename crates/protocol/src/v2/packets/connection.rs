@@ -1,17 +1,24 @@
 #![allow(unused_variables)]
 
-use bytes::{Buf, Bytes};
-use uuid::Uuid;
+use bytes::{
+	Buf,
+	Bytes,
+};
 use macros::define_packet;
+use uuid::Uuid;
+
 use crate::{
-	codec::FixedAscii,
+	codec::{
+		AsciiString,
+		BoundedVarLen,
+		FixedAscii,
+	},
 	define_enum,
 	v2::{
 		HostAddress,
 		InstantData,
 	},
 };
-use crate::codec::AsciiString;
 
 define_enum! {
 	pub enum ClientType {
@@ -21,24 +28,23 @@ define_enum! {
 }
 
 define_packet! {
-    Connect {
-        fixed {
-            required protocol_crc: i32,
-            required protocol_build_number: i32,
-            required client_version: FixedAscii<20>,
-            required client_type: ClientType,
-            required uuid: Uuid,
-        }
-        variable {
-            required username: AsciiString,
-            opt(1) identity_token: String,
-            required language: AsciiString,
-            opt(2) referral_data: Bytes,
-            opt(4) referral_source: HostAddress
-        }
-    }
+	Connect {
+		fixed {
+			required protocol_crc: i32,
+			required protocol_build_number: i32,
+			required client_version: FixedAscii<20>,
+			required client_type: ClientType,
+			required uuid: Uuid,
+		}
+		variable {
+			required username: BoundedVarLen<AsciiString, 16>,
+			opt(1) identity_token: BoundedVarLen<String, 8192>,
+			required language: BoundedVarLen<AsciiString, 16>,
+			opt(2) referral_data: BoundedVarLen<Bytes, 4096>,
+			opt(4) referral_source: HostAddress
+		}
+	}
 }
-
 
 define_enum! {
 	pub enum DisconnectType {

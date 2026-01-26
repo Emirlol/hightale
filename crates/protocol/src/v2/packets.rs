@@ -14,6 +14,7 @@ use uuid::Uuid;
 use crate::{
 	codec::{
 		BitOptionVec,
+		BoundedVarLen,
 		FixedAscii,
 		HytaleCodec,
 		PacketError,
@@ -65,7 +66,7 @@ pub mod world;
 pub mod worldmap;
 
 /// Max size for variable length items, like strings, maps, lists, etc.
-pub const MAX_SIZE: i32 = 4_096_000;
+pub const MAX_SIZE: usize = 4_096_000;
 
 define_packet! {
 	HostAddress {
@@ -73,7 +74,7 @@ define_packet! {
 			required port: u16
 		}
 		variable {
-			required host: String
+			required host: BoundedVarLen<String, 256>
 		}
 	}
 }
@@ -84,7 +85,7 @@ define_packet! {
 			required hash: FixedAscii<64>, // 64-char Hex String
 		}
 		variable {
-			required name: String,         // Filename (e.g. "models/player.json")
+			required name: BoundedVarLen<String, 512>,         // Filename (e.g. "models/player.json")
 		}
 	}
 }
@@ -191,29 +192,30 @@ pub enum ParamValue {
 }
 
 impl HytaleCodec for ParamValue {
-	fn encode(&self, buf: &mut BytesMut) {
+	fn encode(&self, buf: &mut BytesMut) -> PacketResult<()> {
 		match self {
 			ParamValue::String(v) => {
-				VarInt(0).encode(buf);
-				v.encode(buf);
+				VarInt(0).encode(buf)?;
+				v.encode(buf)?;
 			}
 			ParamValue::Bool(v) => {
-				VarInt(1).encode(buf);
-				v.encode(buf);
+				VarInt(1).encode(buf)?;
+				v.encode(buf)?;
 			}
 			ParamValue::Double(v) => {
-				VarInt(2).encode(buf);
-				v.encode(buf);
+				VarInt(2).encode(buf)?;
+				v.encode(buf)?;
 			}
 			ParamValue::Int(v) => {
-				VarInt(3).encode(buf);
-				v.encode(buf);
+				VarInt(3).encode(buf)?;
+				v.encode(buf)?;
 			}
 			ParamValue::Long(v) => {
-				VarInt(4).encode(buf);
-				v.encode(buf);
+				VarInt(4).encode(buf)?;
+				v.encode(buf)?;
 			}
 		}
+		Ok(())
 	}
 
 	fn decode(buf: &mut impl Buf) -> PacketResult<Self> {
@@ -579,7 +581,7 @@ define_packet! {
 
 			opt(1, 4) particles: Vec<ModelParticle>,
 			opt(1, 8) trails: Vec<ModelTrail>,
-			opt(1, 16) detail_boxes: HashMap<String, Vec<DetailBox>>,
+			opt(1, 16) detail_boxes: HashMap<String, BoundedVarLen<Vec<DetailBox>, 64>>,
 			opt(1, 32) phobia_model: Box<Model>,
 		}
 	}
@@ -750,7 +752,7 @@ define_packet! {
 			opt(1, 1) skin: setup::PlayerSkin,
 			opt(1, 2) item: ItemWithAllMetadata,
 			opt(1, 4) equipment: Equipment,
-			opt(1, 8) entity_stat_updates: HashMap<i32, Vec<EntityStatUpdate>>,
+			opt(1, 8) entity_stat_updates: HashMap<i32, BoundedVarLen<Vec<EntityStatUpdate>, 64>>,
 			opt(1, 16) entity_effect_updates: Vec<EntityEffectUpdate>,
 			opt(1, 32) interactions: HashMap<InteractionType, i32>,
 			opt(1, 64) sound_event_ids: Vec<i32>,
@@ -1537,8 +1539,8 @@ define_packet! {
 			opt(1, 4) model: String,
 			opt(1, 8) model_texture: Vec<ModelTexture>,
 			opt(1, 16) model_animation: String,
-			opt(1, 32) support: HashMap<BlockNeighbor, Vec<RequiredBlockFaceSupport>>,
-			opt(1, 64) supporting: HashMap<BlockNeighbor, Vec<BlockFaceSupport>>,
+			opt(1, 32) support: HashMap<BlockNeighbor, BoundedVarLen<Vec<RequiredBlockFaceSupport>, 64>>,
+			opt(1, 64) supporting: HashMap<BlockNeighbor, BoundedVarLen<Vec<BlockFaceSupport>, 64>>,
 			opt(1, 128) cube_textures: Vec<BlockTextures>,
 			opt(2, 1) cube_side_mask_texture: String,
 			opt(2, 2) particles: Vec<ModelParticle>,
@@ -2177,7 +2179,7 @@ define_packet! {
 		}
 		variable {
 			opt(1) entity_stats_to_clear: Vec<i32>,
-			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>
+			opt(2) stat_modifiers: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>
 		}
 	}
 }
@@ -2217,10 +2219,10 @@ define_packet! {
 		}
 		variable {
 			opt(1) cosmetics_to_hide: Vec<Cosmetic>,
-			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>,
-			opt(4) damage_resistance: HashMap<i32, Vec<Modifier>>,
-			opt(8) damage_enhancement: HashMap<i32, Vec<Modifier>>,
-			opt(16) damage_class_enhancement: HashMap<i32, Vec<Modifier>>,
+			opt(2) stat_modifiers: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>,
+			opt(4) damage_resistance: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>,
+			opt(8) damage_enhancement: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>,
+			opt(16) damage_class_enhancement: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>,
 		}
 	}
 }
@@ -2242,7 +2244,7 @@ define_packet! {
 		}
 		variable {
 			opt(1) entity_stats_to_clear: Vec<i32>,
-			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>
+			opt(2) stat_modifiers: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>
 		}
 	}
 }
@@ -3078,11 +3080,12 @@ macro_rules! packet_enum {
                 }
             }
 
-            pub fn encode(&self, buf: &mut BytesMut) {
+            pub fn encode(&self, buf: &mut BytesMut) -> PacketResult<()> {
                 match self {
-                    $( Packet::$variant(pkt) => pkt.encode(buf), )*
+                    $( Packet::$variant(pkt) => pkt.encode(buf)?, )*
                     Packet::Unknown(_, data) => buf.extend_from_slice(data),
                 }
+				Ok(())
             }
 
             pub fn decode(id: i32, buf: &mut impl Buf) -> PacketResult<Self> {

@@ -145,8 +145,8 @@ impl PlayerConnection {
 		let auth_grant_str = self.auth.get_api().request_auth_grant(player_token, &server_session, &server_id).await?;
 
 		self.send_packet(AuthGrant {
-			auth_grant: Some(auth_grant_str),
-			server_identity,
+			auth_grant: Some(auth_grant_str.into()),
+			server_identity: server_identity.map(|str| str.into()),
 		})
 		.await?;
 
@@ -163,7 +163,7 @@ impl PlayerConnection {
 		let access_token = self.auth.get_api().exchange_grant(&server_grant, fingerprint, &server_session).await?;
 
 		self.send_packet(ServerAuthToken {
-			server_access_token: Some(access_token),
+			server_access_token: Some(access_token.into()),
 			password_challenge: None,
 		})
 		.await?;
@@ -176,7 +176,7 @@ impl PlayerConnection {
 	async fn send_packet(&mut self, packet: impl Into<Packet>) -> Result<()> {
 		let packet: Packet = packet.into();
 		let mut payload = BytesMut::new();
-		packet.encode(&mut payload);
+		packet.encode(&mut payload)?;
 
 		let payload = if packet.is_compressed() && !payload.is_empty() {
 			// Pre-allocate at least the packet's size so there are fewer allocations

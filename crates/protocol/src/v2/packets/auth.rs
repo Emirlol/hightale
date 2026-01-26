@@ -1,13 +1,16 @@
 use bytes::Bytes;
 use macros::define_packet;
 
-use crate::v2::HostAddress;
+use crate::{
+	codec::BoundedVarLen,
+	v2::HostAddress,
+};
 
 define_packet! {
 	AuthGrant {
 		variable {
-			opt(1) auth_grant: String,
-			opt(2) server_identity: String,
+			opt(1) auth_grant: BoundedVarLen<String, 4096>,
+			opt(2) server_identity: BoundedVarLen<String, 8192>,
 		}
 	}
 }
@@ -15,8 +18,8 @@ define_packet! {
 define_packet! {
 	AuthToken {
 		variable {
-			opt(1) access_token: String,
-			opt(2) server_grant: String,
+			opt(1) access_token: BoundedVarLen<String, 8192>,
+			opt(2) server_grant: BoundedVarLen<String, 4096>,
 		}
 	}
 }
@@ -61,8 +64,8 @@ define_packet! {
 define_packet! {
 	ServerAuthToken {
 		variable {
-			opt(1) server_access_token: String,
-			opt(2) password_challenge: Bytes,
+			opt(1) server_access_token: BoundedVarLen<String, 8192>,
+			opt(2) password_challenge: BoundedVarLen<Bytes, 64>,
 		}
 	}
 }
@@ -73,8 +76,8 @@ define_packet! {
 			required max_players: i32,
 		}
 		variable {
-			opt(1) name: String,
-			opt(2) motd: String,
+			opt(1) name: BoundedVarLen<String, 128>,
+			opt(2) motd: BoundedVarLen<String, 512>,
 		}
 	}
 }

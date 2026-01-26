@@ -9,24 +9,12 @@ use anyhow::{
 	Context,
 	Result,
 };
+use common_assets::CommonAssetStore;
 use quinn::{
 	crypto::rustls::QuicServerConfig,
 	Endpoint,
 	ServerConfig,
 	TransportConfig,
-};
-use rustls::{
-	client::danger::HandshakeSignatureValid,
-	crypto::WebPkiSupportedAlgorithms,
-	pki_types::CertificateDer,
-	server::danger::{
-		ClientCertVerified,
-		ClientCertVerifier,
-	},
-	DigitallySignedStruct,
-	DistinguishedName,
-	Error,
-	SignatureScheme,
 };
 use tracing::{
 	error,
@@ -36,13 +24,16 @@ use tracing::{
 use crate::{
 	auth::ServerAuthManager,
 	connection::PlayerConnection,
-	tls::ServerCert,
+	tls::{
+		AllowAnyClientCertVerifier,
+		ServerCert,
+	},
 };
-use crate::tls::AllowAnyClientCertVerifier;
 
 pub struct QuicServer {
 	endpoint: Endpoint,
 	auth_manager: Arc<ServerAuthManager>,
+	common_assets: Arc<CommonAssetStore>,
 }
 
 #[derive(Clone, Debug)]
@@ -61,7 +52,7 @@ impl Default for QuicServerOptions {
 }
 
 impl QuicServer {
-	pub async fn bind(addr: SocketAddr, cert: ServerCert, auth_manager: Arc<ServerAuthManager>, options: QuicServerOptions) -> Result<Self> {
+	pub async fn bind(addr: SocketAddr, cert: ServerCert, auth_manager: Arc<ServerAuthManager>, common_assets: Arc<CommonAssetStore>, options: QuicServerOptions) -> Result<Self> {
 		info!("Setting up QUIC transport...");
 
 		let ServerCert { chain, key, fingerprint: _ } = cert;
@@ -87,7 +78,11 @@ impl QuicServer {
 
 		info!("QUIC Listener bound to {}", endpoint.local_addr()?);
 
-		Ok(Self { endpoint, auth_manager })
+		Ok(Self {
+			endpoint,
+			auth_manager,
+			common_assets,
+		})
 	}
 
 	/// The main accept loop. Blocks until the server shuts down.
@@ -96,9 +91,10 @@ impl QuicServer {
 
 		while let Some(connecting) = self.endpoint.accept().await {
 			let auth = self.auth_manager.clone();
+			let common_assets = self.common_assets.clone();
 
 			tokio::spawn(async move {
-				if let Err(e) = handle_connection(connecting, auth).await {
+				if let Err(e) = handle_connection(connecting, auth, common_assets).await {
 					error!("Connection terminated with error: {}", e);
 				}
 			});
@@ -114,7 +110,7 @@ impl QuicServer {
 }
 
 /// Handles the lifecycle of a single player connection
-async fn handle_connection(connecting: quinn::Incoming, auth: Arc<ServerAuthManager>) -> Result<()> {
+async fn handle_connection(connecting: quinn::Incoming, auth: Arc<ServerAuthManager>, common_assets: Arc<CommonAssetStore>) -> Result<()> {
 	let connection = connecting.await?;
 	let remote_addr = connection.remote_address();
 
@@ -122,7 +118,7 @@ async fn handle_connection(connecting: quinn::Incoming, auth: Arc<ServerAuthMana
 
 	let (send_stream, recv_stream) = connection.accept_bi().await.context("Failed to open bidirectional stream")?;
 
-	let player_conn = PlayerConnection::new(connection, send_stream, recv_stream, auth);
+	let player_conn = PlayerConnection::new(connection, send_stream, recv_stream, auth, common_assets);
 
 	player_conn.run().await?;
 

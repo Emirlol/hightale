@@ -1,3 +1,4 @@
+pub mod assets;
 pub mod commands;
 pub mod console;
 pub mod options;
@@ -74,11 +75,13 @@ pub async fn main() -> anyhow::Result<()> {
 		commands::stop::register => (shutdown_tx),
 	);
 
+	let common_assets = Arc::new(assets::load_common_assets(&options.assets_dir)?);
+
 	let quic_options = net::server::QuicServerOptions {
 		max_idle_timeout: std::time::Duration::from_secs(options.quic_idle_timeout_secs),
 		keep_alive_interval: std::time::Duration::from_secs(options.quic_keep_alive_secs),
 	};
-	let server = QuicServer::bind(options.bind_addr, cert_data, auth_manager, quic_options).await?;
+	let server = QuicServer::bind(options.bind_addr, cert_data, auth_manager, common_assets, quic_options).await?;
 
 	info!("Server is Ready.");
 

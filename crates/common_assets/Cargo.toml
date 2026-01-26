@@ -1,0 +1,14 @@
+[package]
+name = "common_assets"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+assets.workspace = true
+bytes.workspace = true
+sha2.workspace = true
+walkdir.workspace = true
+rayon.workspace = true
+hex.workspace = true
+protocol.workspace = true
+zip.workspace = true

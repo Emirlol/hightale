@@ -8,10 +8,14 @@ use anyhow::{
 use bytes::{
 	Buf,
 	BufMut,
+	Bytes,
 	BytesMut,
 };
+use common_assets::{
+	CommonAsset,
+	CommonAssetStore,
+};
 use protocol::{
-	codec::FixedAscii,
 	v2,
 	v2::{
 		auth::{
@@ -22,6 +26,15 @@ use protocol::{
 		connection::{
 			Disconnect,
 			DisconnectType,
+		},
+		setup::{
+			AssetFinalize,
+			AssetInitialize,
+			AssetPart,
+			RequestAssets,
+			WorldLoadFinished,
+			WorldLoadProgress,
+			WorldSettings,
 		},
 		Packet,
 	},
@@ -46,17 +59,19 @@ pub struct PlayerConnection {
 	send: SendStream,
 	recv: RecvStream,
 	auth: Arc<ServerAuthManager>,
+	common_assets: Arc<CommonAssetStore>,
 	pub username: String,
 	pub uuid: Uuid,
 }
 
 impl PlayerConnection {
-	pub fn new(conn: Connection, send: SendStream, recv: RecvStream, auth: Arc<ServerAuthManager>) -> Self {
+	pub fn new(conn: Connection, send: SendStream, recv: RecvStream, auth: Arc<ServerAuthManager>, common_assets: Arc<CommonAssetStore>) -> Self {
 		Self {
 			conn,
 			send,
 			recv,
 			auth,
+			common_assets,
 			username: String::new(),
 			uuid: Uuid::nil(),
 		}
@@ -131,6 +146,8 @@ impl PlayerConnection {
 
 		info!("Player {} authenticated.", self.username);
 
+		self.run_setup().await?;
+
 		while let Ok(_) = self.read_packet().await {}
 
 		Ok(())
@@ -168,6 +185,87 @@ impl PlayerConnection {
 		})
 		.await?;
 
+		Ok(())
+	}
+
+	async fn run_setup(&mut self) -> Result<()> {
+		let required_assets = self.common_assets.required_assets();
+
+		self.send_packet(WorldSettings {
+			world_height: 320,
+			required_assets: Some(required_assets),
+		})
+		.await?;
+
+		self.wait_for_assets_request().await?;
+		self.send_packet(WorldLoadFinished {}).await?;
+
+		Ok(())
+	}
+
+	async fn wait_for_assets_request(&mut self) -> Result<()> {
+		loop {
+			match self.read_packet().await? {
+				Packet::RequestAssets(packet) => {
+					self.handle_request_assets(packet).await?;
+					return Ok(());
+				}
+				Packet::ViewRadius(_) | Packet::PlayerOptions(_) => {}
+				Packet::Disconnect(_) => return Ok(()),
+				packet => {
+					warn!("Unexpected setup packet {} from {}", packet.id(), self.username);
+				}
+			}
+		}
+	}
+
+	async fn handle_request_assets(&mut self, packet: RequestAssets) -> Result<()> {
+		let requested = packet.assets.unwrap_or_else(|| self.common_assets.required_assets());
+
+		for asset in requested {
+			let hash = asset.hash.to_string().to_lowercase();
+			let Some(common_asset) = self.common_assets.get_by_hash(&hash) else {
+				warn!("Requested unknown common asset {} ({}).", asset.name, hash);
+				continue;
+			};
+			let (asset_proto, bytes) = {
+				let proto = common_asset.to_protocol();
+				let bytes = common_asset.load_bytes()?;
+				(proto, bytes)
+			};
+			self.send_common_asset_bytes(asset_proto, bytes).await?; // Assets are sent sequentially, so we can't parallelize this
+		}
+
+		Ok(())
+	}
+
+	async fn send_common_asset_bytes(&mut self, asset: v2::Asset, bytes: Bytes) -> Result<()> {
+		const MAX_FRAME: usize = 2_621_440;
+
+		let total_len = i32::try_from(bytes.len()).unwrap_or(i32::MAX);
+
+		self.send_packet(AssetInitialize { size: total_len, asset }).await?;
+
+		let mut sent = 0;
+		let total = bytes.len();
+		for chunk in bytes.chunks(MAX_FRAME) {
+			self.send_packet(AssetPart {
+				part: Some(Bytes::copy_from_slice(chunk)),
+			})
+			.await?;
+			sent += chunk.len();
+			if total > 0 {
+				let percent = ((sent as f32 / total as f32) * 100.0).round() as i32;
+				self.send_packet(WorldLoadProgress {
+					percent_complete: percent,
+					percent_complete_subitem: 0,
+					message: None,
+				})
+				.await?;
+			}
+		}
+
+		self.send_packet(AssetFinalize).await?;
 		Ok(())
 	}
 

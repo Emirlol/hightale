@@ -30,6 +30,7 @@ bytes.workspace = true
 hex.workspace = true
 
 protocol.workspace = true
+common_assets.workspace = true
 
 tiny_http.workspace = true
 rand.workspace = true

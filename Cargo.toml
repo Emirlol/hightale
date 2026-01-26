@@ -53,6 +53,9 @@ rustyline = "17"
 is-terminal = "0.4"
 hex = "0.4"
 ordered-float = "5.1"
+walkdir = "2.5.0"
+rayon = "1.11"
+zip = "7.2"
 
 # Internal crate references
 command = { path = "crates/command" }
@@ -60,6 +63,8 @@ macros= { path = "crates/macros" }
 net = { path = "crates/net" }
 protocol = { path = "crates/protocol" }
 world = { path = "crates/world" }
+assets = { path = "crates/assets" }
+common_assets = { path = "crates/common_assets" }
 
 
 

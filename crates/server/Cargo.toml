@@ -20,6 +20,7 @@ is-terminal.workspace = true
 parking_lot.workspace = true
 
 command.workspace = true
+common_assets.workspace = true
 net.workspace = true
 protocol.workspace = true
 world.workspace = true

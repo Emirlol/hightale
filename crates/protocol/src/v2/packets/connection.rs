@@ -1,9 +1,4 @@
-#![allow(unused_variables)]
-
-use bytes::{
-	Buf,
-	Bytes,
-};
+use bytes::Bytes;
 use macros::define_packet;
 use uuid::Uuid;
 

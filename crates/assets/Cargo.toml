@@ -1,0 +1,10 @@
+[package]
+name = "assets"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+bytes.workspace = true
+walkdir.workspace = true
+rayon.workspace = true

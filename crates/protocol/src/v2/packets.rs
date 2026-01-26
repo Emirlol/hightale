@@ -2215,7 +2215,7 @@ define_packet! {
 	ItemArmor {
 		fixed {
 			required armor_slot: ItemArmorSlot,
-			required base_damage_resistance: i32,
+			required base_damage_resistance: f64,
 		}
 		variable {
 			opt(1) cosmetics_to_hide: Vec<Cosmetic>,

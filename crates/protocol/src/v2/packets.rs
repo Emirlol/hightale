@@ -2352,7 +2352,7 @@ define_packet! {
 			opt(1, 1) animation: String,
 			opt(1, 2) player_animations_id: String,
 			opt(1, 4) icon: String,
-			opt(1, 8) appearance_conditions: Vec<ItemAppearanceCondition>,
+			opt(1, 8) translation_properties: ItemTranslationProperties,
 			opt(1, 16) resource_types: Vec<ItemResourceType>,
 			opt(1, 32) tool: ItemTool,
 			opt(1, 64) weapon: ItemWeapon,

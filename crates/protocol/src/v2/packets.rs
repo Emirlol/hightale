@@ -581,7 +581,7 @@ define_packet! {
 
 			opt(1, 4) particles: Vec<ModelParticle>,
 			opt(1, 8) trails: Vec<ModelTrail>,
-			opt(1, 16) detail_boxes: HashMap<String, BoundedVarLen<Vec<DetailBox>, 64>>,
+			opt(1, 16) detail_boxes: HashMap<String, Vec<DetailBox>>,
 			opt(1, 32) phobia_model: Box<Model>,
 		}
 	}
@@ -752,7 +752,7 @@ define_packet! {
 			opt(1, 1) skin: setup::PlayerSkin,
 			opt(1, 2) item: ItemWithAllMetadata,
 			opt(1, 4) equipment: Equipment,
-			opt(1, 8) entity_stat_updates: HashMap<i32, BoundedVarLen<Vec<EntityStatUpdate>, 64>>,
+			opt(1, 8) entity_stat_updates: HashMap<i32, Vec<EntityStatUpdate>>,
 			opt(1, 16) entity_effect_updates: Vec<EntityEffectUpdate>,
 			opt(1, 32) interactions: HashMap<InteractionType, i32>,
 			opt(1, 64) sound_event_ids: Vec<i32>,
@@ -1539,8 +1539,8 @@ define_packet! {
 			opt(1, 4) model: String,
 			opt(1, 8) model_texture: Vec<ModelTexture>,
 			opt(1, 16) model_animation: String,
-			opt(1, 32) support: HashMap<BlockNeighbor, BoundedVarLen<Vec<RequiredBlockFaceSupport>, 64>>,
-			opt(1, 64) supporting: HashMap<BlockNeighbor, BoundedVarLen<Vec<BlockFaceSupport>, 64>>,
+			opt(1, 32) support: HashMap<BlockNeighbor, Vec<RequiredBlockFaceSupport>>,
+			opt(1, 64) supporting: HashMap<BlockNeighbor, Vec<BlockFaceSupport>>,
 			opt(1, 128) cube_textures: Vec<BlockTextures>,
 			opt(2, 1) cube_side_mask_texture: String,
 			opt(2, 2) particles: Vec<ModelParticle>,
@@ -2179,7 +2179,7 @@ define_packet! {
 		}
 		variable {
 			opt(1) entity_stats_to_clear: Vec<i32>,
-			opt(2) stat_modifiers: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>
+			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>
 		}
 	}
 }
@@ -2219,10 +2219,10 @@ define_packet! {
 		}
 		variable {
 			opt(1) cosmetics_to_hide: Vec<Cosmetic>,
-			opt(2) stat_modifiers: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>,
-			opt(4) damage_resistance: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>,
-			opt(8) damage_enhancement: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>,
-			opt(16) damage_class_enhancement: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>,
+			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>,
+			opt(4) damage_resistance: HashMap<i32, Vec<Modifier>>,
+			opt(8) damage_enhancement: HashMap<i32, Vec<Modifier>>,
+			opt(16) damage_class_enhancement: HashMap<i32, Vec<Modifier>>,
 		}
 	}
 }
@@ -2244,7 +2244,7 @@ define_packet! {
 		}
 		variable {
 			opt(1) entity_stats_to_clear: Vec<i32>,
-			opt(2) stat_modifiers: HashMap<i32, BoundedVarLen<Vec<Modifier>, 64>>
+			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>
 		}
 	}
 }

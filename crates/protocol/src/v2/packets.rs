@@ -2220,9 +2220,9 @@ define_packet! {
 		variable {
 			opt(1) cosmetics_to_hide: Vec<Cosmetic>,
 			opt(2) stat_modifiers: HashMap<i32, Vec<Modifier>>,
-			opt(4) damage_resistance: HashMap<i32, Vec<Modifier>>,
-			opt(8) damage_enhancement: HashMap<i32, Vec<Modifier>>,
-			opt(16) damage_class_enhancement: HashMap<i32, Vec<Modifier>>,
+			opt(4) damage_resistance: HashMap<String, Vec<Modifier>>,
+			opt(8) damage_enhancement: HashMap<String, Vec<Modifier>>,
+			opt(16) damage_class_enhancement: HashMap<String, Vec<Modifier>>,
 		}
 	}
 }

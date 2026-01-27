@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use ordered_float::OrderedFloat;
 use macros::define_packet;
+use ordered_float::OrderedFloat;
+
 use crate::{
 	define_enum,
 	id_dispatch,
@@ -21,6 +22,7 @@ use crate::{
 		ModelParticle,
 		ModelTrail,
 		MovementEffects,
+		Selector,
 		ValueType,
 		Vector3f,
 	},
@@ -673,7 +675,8 @@ define_packet! {
 			opt(4) rules: InteractionRules,
 			opt(8) tags: Vec<i32>,
 			opt(16) camera: InteractionCameraSettings,
-			opt(32) hit_entity_rules: Vec<HitEntity>
+			opt(32) selector: Selector,
+			opt(64) hit_entity_rules: Vec<HitEntity>
 		}
 	}
 }

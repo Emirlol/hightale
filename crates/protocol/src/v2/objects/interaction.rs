@@ -311,7 +311,6 @@ define_packet! {
 			required horizontal_speed_multiplier: f32,
 			required run_time: f32,
 			required cancel_on_item_change: bool,
-			required next: i32,
 			required failed: i32,
 			required allow_indefinite_hold: bool,
 			required display_progress: bool,

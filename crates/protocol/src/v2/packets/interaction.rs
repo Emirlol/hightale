@@ -1,21 +1,22 @@
 use std::collections::HashMap;
 
 use bytes::Buf;
+use protocol_macros::define_packet;
 use uuid::Uuid;
-use macros::define_packet;
-use crate::v2::{
-	BlockFace,
-	BlockRotation,
-	DirectionF,
-	MovementDirection,
-	PositionF,
-	SelectedHitEntity,
-	Vector3f,
-	Vector3i,
-};
+
 use crate::{
 	codec::BitOptionVec,
 	define_enum,
+	v2::{
+		BlockFace,
+		BlockRotation,
+		DirectionF,
+		MovementDirection,
+		PositionF,
+		SelectedHitEntity,
+		Vector3f,
+		Vector3i,
+	},
 };
 
 define_packet! {

@@ -1,4 +1,5 @@
-use macros::define_packet;
+use protocol_macros::define_packet;
+
 use crate::{
 	define_enum,
 	v2::{

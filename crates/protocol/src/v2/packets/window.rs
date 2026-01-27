@@ -1,4 +1,4 @@
-use macros::define_packet;
+use protocol_macros::define_packet;
 
 use crate::v2::{
 	inventory::InventorySection,

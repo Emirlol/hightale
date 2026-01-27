@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use macros::define_packet;
+use protocol_macros::define_packet;
 use uuid::Uuid;
 
 use crate::v2::{

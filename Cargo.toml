@@ -59,8 +59,8 @@ zip = "7.2"
 
 # Internal crate references
 command = { path = "crates/command" }
-macros= { path = "crates/macros" }
 net = { path = "crates/net" }
+protocol_macros = { path = "crates/protocol_macros" }
 protocol = { path = "crates/protocol" }
 world = { path = "crates/world" }
 assets = { path = "crates/assets" }

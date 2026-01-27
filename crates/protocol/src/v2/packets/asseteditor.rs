@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bytes::Bytes;
-use macros::define_packet;
+use protocol_macros::define_packet;
 use ordered_float::OrderedFloat;
 
 use crate::{

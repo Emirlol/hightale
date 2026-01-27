@@ -2,7 +2,7 @@
 proc-macro = true
 
 [package]
-name = "macros"
+name = "protocol_macros"
 version.workspace = true
 edition.workspace = true
 

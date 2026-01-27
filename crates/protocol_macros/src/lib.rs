@@ -151,6 +151,5 @@ pub fn derive_fixed_size(input: TokenStream) -> TokenStream {
 /// The padding is inferred from the FixedSize implementation of the types if not specified. It's usually better to not specify it unless necessary.
 #[proc_macro]
 pub fn define_packet(input: TokenStream) -> TokenStream {
-	let input = parse_macro_input!(input as define_packet::PacketDefinition);
-	define_packet::generate(input).into()
+	parse_macro_input!(input as define_packet::PacketDefinition).to_tokens().into()
 }

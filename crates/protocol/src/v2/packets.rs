@@ -7,8 +7,8 @@ use bytes::{
 	Bytes,
 	BytesMut,
 };
-use macros::define_packet;
 use ordered_float::OrderedFloat;
+use protocol_macros::define_packet;
 use uuid::Uuid;
 
 use crate::{

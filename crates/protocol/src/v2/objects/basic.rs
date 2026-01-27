@@ -1,4 +1,4 @@
-use macros::define_packet;
+use protocol_macros::define_packet;
 
 define_packet! { InstantData { seconds: i64, nanos: i32 } }
 

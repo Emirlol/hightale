@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use macros::define_packet;
 use ordered_float::OrderedFloat;
+use protocol_macros::define_packet;
 
 use crate::{
 	define_enum,

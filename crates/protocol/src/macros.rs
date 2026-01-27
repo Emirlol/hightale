@@ -15,7 +15,7 @@ macro_rules! define_enum {
         }
     ) => {
         $(#[$meta])*
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, macros::FixedSize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, protocol_macros::FixedSize)]
         #[repr(u8)]
         $vis enum $name {
             $($variant = $val),+

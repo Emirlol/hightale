@@ -116,7 +116,7 @@ impl Parse for SequentialField {
 	fn parse(input: ParseStream) -> syn::Result<Self> {
 		// #[...] attributes
 		// name: Type
-		let attributes = if input.peek(Token![#]) { input.call(Attribute::parse_outer)? } else { Vec::new() };
+		let attributes = input.call(Attribute::parse_outer)?;
 		let name: Ident = input.parse()?;
 		let _colon_token: Token![:] = input.parse()?;
 		let ty: Type = input.parse()?;
@@ -134,7 +134,7 @@ impl Parse for MaskedField {
 		// opt(usize, u8) name: Type,
 		// opt(usize, u8) name: Type [pad=N],
 		// Or the above with "required" and "optional" instead of "req" and "opt", but expanding those in this comment is unnecessary.
-		let attributes = if input.peek(Token![#]) { input.call(Attribute::parse_outer)? } else { Vec::new() };
+		let attributes = input.call(Attribute::parse_outer)?;
 		let kind = if input.peek(kw::req) || input.peek(kw::required) {
 			let _: Ident = input.parse()?;
 			MaskedFieldKind::Required
@@ -258,7 +258,7 @@ impl Parse for PacketDefinition {
 	fn parse(input: ParseStream) -> syn::Result<Self> {
 		// #[...] attributes
 		// Name { ... }
-		let attributes = if input.peek(Token![#]) { input.call(Attribute::parse_outer)? } else { Vec::new() };
+		let attributes = input.call(Attribute::parse_outer)?;
 		let name: Ident = input.parse()?;
 		let body: PacketBody = if input.peek(syn::token::Brace) {
 			let content;

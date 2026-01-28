@@ -70,6 +70,7 @@ pub(crate) struct PacketDefinition {
 struct SequentialField {
 	name: Ident,
 	ty: Type,
+	attributes: Vec<Attribute>,
 }
 
 struct MaskedField {
@@ -77,6 +78,7 @@ struct MaskedField {
 	ty: Type,
 	kind: MaskedFieldKind,
 	explicit_padding: Option<usize>, // Number of padding bits to add after this field
+	attributes: Vec<Attribute>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -112,16 +114,19 @@ enum PacketBody {
 
 impl Parse for SequentialField {
 	fn parse(input: ParseStream) -> syn::Result<Self> {
+		// #[...] attributes
 		// name: Type
+		let attributes = if input.peek(Token![#]) { input.call(Attribute::parse_outer)? } else { Vec::new() };
 		let name: Ident = input.parse()?;
 		let _colon_token: Token![:] = input.parse()?;
 		let ty: Type = input.parse()?;
-		Ok(SequentialField { name, ty })
+		Ok(SequentialField { name, ty, attributes })
 	}
 }
 
 impl Parse for MaskedField {
 	fn parse(input: ParseStream) -> syn::Result<Self> {
+		// #[...] attributes, and then
 		// All expected inputs:
 		// req name Type,
 		// opt(u8) name: Type,
@@ -129,6 +134,7 @@ impl Parse for MaskedField {
 		// opt(usize, u8) name: Type,
 		// opt(usize, u8) name: Type [pad=N],
 		// Or the above with "required" and "optional" instead of "req" and "opt", but expanding those in this comment is unnecessary.
+		let attributes = if input.peek(Token![#]) { input.call(Attribute::parse_outer)? } else { Vec::new() };
 		let kind = if input.peek(kw::req) || input.peek(kw::required) {
 			let _: Ident = input.parse()?;
 			MaskedFieldKind::Required
@@ -168,7 +174,7 @@ impl Parse for MaskedField {
 				None
 			}
 		};
-		Ok(MaskedField { name, ty, kind, explicit_padding })
+		Ok(MaskedField { name, ty, kind, explicit_padding, attributes })
 	}
 }
 
@@ -275,7 +281,9 @@ impl ToTokens for SequentialField {
 	fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
 		let name = &self.name;
 		let ty = &self.ty;
+		let attributes = &self.attributes;
 		tokens.extend(quote! {
+			#(#attributes)*
 			#name: #ty
 		});
 	}
@@ -284,17 +292,20 @@ impl ToTokens for SequentialField {
 impl ToTokens for MaskedField {
 	fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
 		let name = &self.name;
+		let attributes = &self.attributes;
 
 		match self.kind {
 			MaskedFieldKind::Required => {
 				let ty = &self.ty;
 				tokens.extend(quote! {
+					#(#attributes)*
 					#name: #ty
 				});
 			}
 			MaskedFieldKind::Optional(_) => {
 				let ty = &self.ty;
 				tokens.extend(quote! {
+					#(#attributes)*
 					#name: Option<#ty>
 				});
 			}

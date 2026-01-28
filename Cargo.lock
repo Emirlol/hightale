@@ -1260,15 +1260,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1620,11 +1611,20 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
- "macros",
  "ordered-float",
+ "protocol_macros",
  "thiserror 2.0.17",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "protocol_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

@@ -650,6 +650,9 @@ define_packet! {
 
 define_packet! {
 	HitEntity {
+		fixed {
+			required next: i32
+		}
 		variable {
 			opt(1) matchers: Vec<EntityMatcher>
 		}

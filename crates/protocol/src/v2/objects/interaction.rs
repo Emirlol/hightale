@@ -16,6 +16,7 @@ use crate::{
 		BlockFace,
 		Color,
 		DirectionF,
+		FloatRange,
 		GameMode,
 		ItemWithAllMetadata,
 		Model,
@@ -869,6 +870,7 @@ define_packet! {
 			opt(1) velocity_config: VelocityConfig,
 			required change_velocity_type: ChangeVelocityType,
 			required duration: f32,
+			opt(2) vertical_clamp: FloatRange,
 			required wait_for_ground: bool,
 			required wait_for_collision: bool,
 			required ground_check_delay: f32,
@@ -880,12 +882,12 @@ define_packet! {
 			required raycast_mode: RaycastMode,
 		}
 		variable {
-			opt(2) effects: InteractionEffects,
-			opt(4) settings: HashMap<GameMode, InteractionSettings>,
-			opt(8) rules: InteractionRules,
-			opt(16) tags: Vec<i32>,
-			opt(32) camera: InteractionCameraSettings,
-			opt(64) forces: Vec<AppliedForce>,
+			opt(4) effects: InteractionEffects,
+			opt(8) settings: HashMap<GameMode, InteractionSettings>,
+			opt(16) rules: InteractionRules,
+			opt(32) tags: Vec<i32>,
+			opt(64) camera: InteractionCameraSettings,
+			opt(128) forces: Vec<AppliedForce>,
 		}
 	}
 }
